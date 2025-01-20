@@ -20,8 +20,7 @@ def taylor_logical_gate(code : Union[str, NDArray],
                       num_CZL : int, time_limit : float = -1,
                       log_to_console : bool = False,
                       log_file : str = "",
-                      gurobi : Dict[Any, Any] = {},
-                      perm : Tuple[bool, bool] = [False, False]) -> Tuple[Optional[Circuit], str]:
+                      **kwargs) -> Tuple[Optional[Circuit], str]:
     """Find a circuit implementation for a Clifford gate of a given quantum
     error-correcting code tailored to a specified hardware connectivity. Some
     codes and connectivities can be accesed by their names. For more information,
@@ -44,7 +43,9 @@ def taylor_logical_gate(code : Union[str, NDArray],
         log_file (str, optional): File path of the log created by Gurobi. An emptry \
         string removes the log-file. Defaults to "".
         gurobi (Dict[Any, Any], optional): Additional arguments for the Gurobi solver.
-        perm (Tuple[bool, bool], optional): Defaults to [False, False]
+        optimize (bool, optional): Perform a slight optimization of single-qubit gates. \
+        Defaults to True.
+        perm (Tuple[bool, bool], optional): Defaults to [False, False] 
     Returns:
         Tuple[Optional[Circuit], str]: A representation of the circuit in form of a \
         member the circuit class and a string containing the final status message. \
@@ -65,7 +66,7 @@ def taylor_logical_gate(code : Union[str, NDArray],
     else:
         add_phases = None
     if isinstance(logical_gate, int): logical_gate = symplectic_t(logical_gate, len(code[:,0])//2)
-    gf = GateFinder(num_CZL, connectivity, code, log_to_console, log_file, gurobi, perm)
+    gf = GateFinder(num_CZL, connectivity, code, log_to_console, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_logical_gate(logical_gate)
@@ -75,9 +76,15 @@ def taylor_logical_gate(code : Union[str, NDArray],
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
             print(add_phases)
             ps = Circuit.get_paulis_as_circuit(sum([code[:,i] for i in np.nonzero(add_phases)]))
-            return ps + gf.get_circuit_implementation(), gf.get_status()
+            c = ps + gf.get_circuit_implementation()
+            if kwargs.get("optimize", True):
+                c.shallow_optimize()
+            return c, gf.get_status()
         else:
-            return gf.get_circuit_implementation(), gf.get_status()
+            c = gf.get_circuit_implementation()
+            if kwargs.get("optimize", True):
+                c.shallow_optimize()
+            return c, gf.get_status()
     else:
         return None, gf.get_status()
 
@@ -90,7 +97,7 @@ def taylor_multiple_logical_gates(code : Union[str, NDArray],
                       log_file : str = "",
                       progress_bar : bool = False,
                       save_every : int = 1,
-                      gurobi : Dict[Any, Any] = {}):
+                      **kwargs):
     """Find a circuit implementations for multiple Clifford gates of a given quantum
     error-correcting code tailored to a specified hardware connectivity. Some
     codes and connectivities can be accesed by their names. For more information,
@@ -112,7 +119,9 @@ def taylor_multiple_logical_gates(code : Union[str, NDArray],
         log_file (str, optional): File path of the log created by Gurobi. An emptry \
         string removes the log-file. Defaults to "".
         gurobi (Dict[Any, Any], optional): Additional arguments for the Gurobi solver.
-
+        optimize (bool, optional): Perform a slight optimization of single-qubit gates. \
+        Defaults to True.
+        perm (Tuple[bool, bool], optional): Defaults to [False, False] 
     Raises:
         TypeError: _description_
         TypeError: _description_
@@ -133,7 +142,7 @@ def taylor_multiple_logical_gates(code : Union[str, NDArray],
             f = lambda x : x
     else: 
         f = lambda x : x
-    gf = GateFinder(num_CZL, connectivity, code, False, log_file, gurobi)
+    gf = GateFinder(num_CZL, connectivity, code, False, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_target_function()
@@ -150,7 +159,10 @@ def taylor_multiple_logical_gates(code : Union[str, NDArray],
         gf.set_logical_gate(symplectic_t(i, gf.k))
         gf.find_gate()
         if gf.has_solution():
-            stor["Gates"][i] = {"Circuit" : gf.get_circuit_implementation().get_as_string(),
+            c = gf.get_circuit_implementation()
+            if kwargs.get("optimize", True):
+                c.shallow_optimize()
+            stor["Gates"][i] = {"Circuit" : c.get_as_string(),
                                 "Status" : gf.get_status(),
                                 "Runtime" : gf.get_runtime()}
         else:

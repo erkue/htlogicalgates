@@ -23,6 +23,16 @@ class Operation(Enum):
     Y = "Y"
     Z = "Z"
 
+def contract_single_qubit_clifford(ops : List[Operation]) -> List[Operation]:
+    if len(ops) == 0:
+        return [Operation.I]
+    c = get_clifford_of_operation(ops[0], [0], 1)
+    for op in ops[1:]:
+        c = get_clifford_of_operation(op, [0], 1)@c
+    circ = Circuit.get_SCL_as_circuit(c)
+    return [i[0] for i in circ._circ]
+    
+
 def get_clifford_of_operation(op : Operation, ts : List[int], N : int):
     if op == Operation.CZ:
         assert(len(ts) == 2)
@@ -188,17 +198,28 @@ class Circuit:
         return self._n
 
     def shallow_optimize(self):
-        two_q_on = set([])
-        for j in range(self._circ):
-            if len(self._circ[j][1]):
-                for e in self._circ[j][1]:
-                    two_q_on.add(e)
-        for i in two_q_on:
-            c = Circuit(1)
-            for j in reversed(range(self._circ)):
-                if i in self._circ[j][1]:
-                    c.insert(0, self._circ.pop(j))
-            self.insert(0, Circuit.get_CZL_as_circuit(c.to_clifford()).map_qubits({0 : i}, self.N))
+        ### Contract single-qubit Cliffords
+        for i in range(self.N):
+            tars = [[]]
+            ops = [[]]
+            for j, gate in enumerate(self._circ):
+                if gate[1] == [i]:
+                    tars[-1].append(j)
+                    ops[-1].append(gate[0])
+                elif len(gate) == 2 and i in gate[1]:
+                    tars.append([])
+                    ops.append([])
+            for ts, os in zip(reversed(tars), reversed(ops)):
+                if len(ts) == 0:
+                    continue
+                o = contract_single_qubit_clifford(os)
+                for j in reversed(ts):
+                    self._circ.pop(j)
+                if len(o) == 1 and o[0] == Operation.I:
+                    continue
+                for el in reversed(o):
+                    self._circ.insert(ts[0],(el,[i]))
+        ### Collect Paulis
 
     def map_qubits(self, mp : dict, N : int) -> Circuit:
         nc = Circuit(N)

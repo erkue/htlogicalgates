@@ -50,7 +50,7 @@ class Clifford:
     
     def __matmul__(self, other : Clifford):
         assert(self.M == 2*other.N)
-        return Clifford(self._mat@other._mat,
-                        other._phase + other._mat.T@self._phase +\
-                        np.diag(other._mat.T@np.tril(self._mat.T@_get_u_bar(self.N)@self._mat, -1)@other._mat))
+        return Clifford((self._mat@other._mat)%2,
+                        (other._phase + other._mat.T@self._phase +\
+                        np.diag(other._mat.T@np.tril(self._mat.T@_get_u_bar(self.N)@self._mat, -1)@other._mat))%2)
     
