@@ -30,7 +30,7 @@ The package can be used in the following way
 ```py
 from htlogicalgates import *
 
-circ = taylor_logical_gate("4_2_2", "circular", "H 0", 2)
+circ = tailor_logical_gate("4_2_2", "circular", "H 0", 2)
 ```
 
 Here, we construct a logical gate for the $⟦4,2,2⟧$-code, as indicated by the argument `"4_2_2"`. We use a `"circular"`-connectivity and search a circuit implementation for `"H 0"`, the Hadamard gate on logical qubit 0. The ansatz consists of `2` controlled-Z gate layers.

@@ -7,10 +7,9 @@ import numpy as np
 
 from .._global_vars import ITYPE, ENCODING_FILE, CON_FILE, ENCODING_KEY, DESCR_KEY, CON_KEY
 
-_automated_cons = {"linear" : "Connections exist between qubits $i$ and $i+1$.",
-                  "circular" : "Connections exist between qubits $i$ and $(i+1)%n$.",
-                  "all-to-all" : "Connections exist between all qubits.",
-                  "all" : "Connections exist between all qubits."}
+_automated_cons = {["linear", "line"] : "Connections exist between qubits $i$ and $i+1$.",
+                  ["circular", "circle", "circ"] : "Connections exist between qubits $i$ and $(i+1)%n$.",
+                  ["all-to-all", "all"] : "Connections exist between all qubits."}
 
 _automated_codes = {"trivial" : "The trivial [[n,n,1]] code. Get code with argument 'trivial n'."}
 
@@ -50,12 +49,12 @@ def get_connectivity(name : str, n : Optional[int] = None):
     if name in get_internal_connectivities().keys():
         return np.array(get_internal_connectivities()[name][CON_KEY], dtype=ITYPE)
     elif name in _automated_cons.keys():
-        if name == "all-to-all" or name == "all":
+        if name in ["all-to-all", "all"]:
             return np.full((n,n), 1, dtype=ITYPE) - np.identity(n, dtype=ITYPE)
-        if name == "circular":
+        if name in ["circular", "circle", "circ"]:
             return np.roll(np.identity(n, dtype=ITYPE), shift=1, axis=0) +\
                    np.roll(np.identity(n, dtype=ITYPE), shift=-1, axis=0)
-        if name == "linear":
+        if name in ["linear", "line"]:
             return np.eye(n, n, 1, dtype=ITYPE) + np.eye(n, n, -1, dtype=ITYPE)
     raise ValueError(f"No connectivity found under name '{str(name)}'.")
 

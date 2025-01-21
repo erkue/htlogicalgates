@@ -14,7 +14,7 @@ from .symplectic_rep.random_symplectic import symplectic_t
 from .symplectic_rep.helper import LinSolver
 from .codes.codes import get_encoding_of_code, get_connectivity
 
-def taylor_logical_gate(code : Union[str, NDArray],
+def tailor_logical_gate(code : Union[str, NDArray],
                       connectivity : Union[str, NDArray],
                       logical_gate : Union[str, Circuit, int, NDArray],
                       num_CZL : int, time_limit : float = -1,
@@ -88,7 +88,7 @@ def taylor_logical_gate(code : Union[str, NDArray],
     else:
         return None, gf.get_status()
 
-def taylor_multiple_logical_gates(code : Union[str, NDArray],
+def tailor_multiple_logical_gates(code : Union[str, NDArray],
                       connectivity : Union[str, NDArray],
                       logical_gates : Iterable[int],
                       num_CZL : int,
