@@ -20,8 +20,8 @@ classifiers = [
 ]
 keywords = ["quantum information", "quantum error correction", "quantum circuit", "logical gates"]
 dependencies = [
-    "gurobipy>=11.0.3",
-    "numpy>=2.1.2",
+    "gurobipy>=11.0",
+    "numpy>=1.23",
 ]
 
 [project.optional-dependencies]
