@@ -1,6 +1,6 @@
 from __future__ import annotations
 from enum import Enum
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Union
 
 from .symplectic_rep.clifford_gate import Clifford
 from ._global_vars import ITYPE
@@ -39,7 +39,7 @@ def contract_single_qubit_clifford(ops: List[Operation]) -> List[Operation]:
     for op in ops[1:]:
         c = get_clifford_of_operation(op, [0], 1)@c
     circ = Circuit.get_SCL_as_circuit(c)
-    return [i[0] for i in circ._circ]
+    return [i[0] for i in circ._gates]
 
 
 def get_clifford_of_operation(op: Operation, ts: List[int], N: int):
@@ -120,7 +120,7 @@ class Circuit:
 
     @staticmethod
     def get_SCL_as_circuit(c: Clifford, only_paulis: bool = False) -> Circuit:
-        circ = Circuit(c.N, [])
+        circ = Circuit(c.N)
         for i in range(c.N):
             if c.phase[i] == 1:
                 circ.append((Operation.Z, [i]))
@@ -151,7 +151,7 @@ class Circuit:
 
     @staticmethod
     def get_perm_as_circuit(c: Clifford) -> Circuit:
-        circ = Circuit(c.N, [])
+        circ = Circuit(c.N)
         for i in range(c.N):
             if c.symplectic_matrix[i, i] == 0:
                 for j in range(c.N):
@@ -184,38 +184,74 @@ class Circuit:
         except ValueError:
             raise ValueError(f"Invalid instruction in line {str(j)}: '{l}'")
         if n == -1:
-            return Circuit(m, c)
+            circuit = Circuit(m)
+            circuit.append(c)
+            return circuit
         else:
             if m > n:
                 raise ValueError(
                     f"Circuit is defined on at least {m} qubits but only {n} were given")
-            return Circuit(n, c)
+            circuit = Circuit(n)
+            circuit.append(c)
+            return circuit
 
     @staticmethod
     def decompose_clifford(c: Clifford) -> Circuit:
         pass
+    
+    def __init__(self, num_qubits: int):
+        self._num_qubits = num_qubits
+        self._gates = []
 
-    def __init__(self, n: int, circ: List[Gate] = None):
-        if circ is None:
-            self._circ = []
-        else:
-            self._circ = circ
-        self._n = n
+    def h(self, qubit: int):
+        self.append((Operation.H, [qubit]))
+
+    def s(self, qubit: int):
+        self.append((Operation.S, [qubit]))
+
+    def sdg(self, qubit: int):
+        self.append((Operation.SDG, [qubit]))
+
+    def sxdg(self, qubit: int):
+        self.append((Operation.SXDG, [qubit]))
+
+    def cx(self, control: int, target: int):
+        self.append((Operation.CX, [control, target]))
+
+    def cz(self, qubit1: int, qubit2):
+        self.append((Operation.CZ, [qubit1, qubit2]))
+
+    def swap(self, qubit1: int, qubit2):
+        self.append((Operation.SWAP, [qubit1, qubit2]))
+
+    def x(self, qubit: int):
+        self.append((Operation.X, [qubit]))
+
+    def y(self, qubit: int):
+        self.append((Operation.Y, [qubit]))
+
+    def z(self, qubit: int):
+        self.append((Operation.Z, [qubit]))
+
+    def id(self, qubit: int):
+        self.append((Operation.I, [qubit]))
 
     def __add__(self, other: Circuit) -> Circuit:
-        assert (self.N == other.N)
-        return Circuit(self.N, self._circ + other._circ)
+        assert (self.num_qubits == other.num_qubits)
+        circuit = Circuit(self.num_qubits)
+        circuit.append(self._gates + other._gates)
+        return circuit
 
     @property
-    def N(self):
-        return self._n
+    def num_qubits(self):
+        return self._num_qubits
 
     def shallow_optimize(self):
         # Contract single-qubit Cliffords
-        for i in range(self.N):
+        for i in range(self.num_qubits):
             tars = [[]]
             ops = [[]]
-            for j, gate in enumerate(self._circ):
+            for j, gate in enumerate(self._gates):
                 if gate[1] == [i]:
                     tars[-1].append(j)
                     ops[-1].append(gate[0])
@@ -227,28 +263,31 @@ class Circuit:
                     continue
                 o = contract_single_qubit_clifford(os)
                 for j in reversed(ts):
-                    self._circ.pop(j)
+                    self._gates.pop(j)
                 if len(o) == 1 and o[0] == Operation.I:
                     continue
                 for el in reversed(o):
-                    self._circ.insert(ts[0], (el, [i]))
+                    self._gates.insert(ts[0], (el, [i]))
         # Collect Paulis
 
     def map_qubits(self, mp: dict, N: int) -> Circuit:
         nc = Circuit(N)
-        for op, ts in self._circ:
+        for op, ts in self._gates:
             nc.append((op, [mp.get(i, i) for i in ts]))
         return nc
 
-    def append(self, a: Gate):
-        self._circ.append(a)
+    def append(self, a: Union[Gate, List[Gate]]):
+        if isinstance(a, list):
+            self._gates += a
+        else:
+            self._gates.append(a)
 
     def insert(self, index: int, a: Gate):
-        self._circ.insert(index, a)
+        self._gates.insert(index, a)
 
     def __str__(self) -> str:
         s = ""
-        for op, ts in self._circ:
+        for op, ts in self._gates:
             s += op.value
             for t in ts:
                 s += f" {str(t)}"
@@ -262,13 +301,13 @@ class Circuit:
         gates = {
             Operation.X: QC.x, Operation.Y: QC.y, Operation.Z: QC.z, Operation.H: QC.h,
             Operation.SDG: QC.sdg, Operation.S: QC.s, Operation.CX: QC.cx,
-            Operation.Z: QC.cz, Operation.SXDG: QC.sxdg,
+            Operation.CZ: QC.cz, Operation.SXDG: QC.sxdg,
             Operation.SWAP: QC.swap, Operation.I: QC.id
         }
 
-        circuit = QC(self.N)
+        circuit = QC(self.num_qubits)
 
-        for op, qubits in self._circ:
+        for op, qubits in self._gates:
             if op in gates:
                 gates[op](circuit, *qubits)
             elif op == Operation.R_DAG:
@@ -283,8 +322,8 @@ class Circuit:
                 assert False, f"Unknown op {op}"
         return circuit
 
-    def get_as_clifford(self) -> Clifford:
-        c = Clifford.from_matrix(np.identity(2*self.N, dtype=ITYPE))
-        for gate, ts in reversed(self._circ):
-            c = c@get_clifford_of_operation(gate, ts, self.N)
+    def to_clifford(self) -> Clifford:
+        c = Clifford.from_matrix(np.identity(2*self.num_qubits, dtype=ITYPE))
+        for gate, ts in reversed(self._gates):
+            c = c@get_clifford_of_operation(gate, ts, self.num_qubits)
         return c

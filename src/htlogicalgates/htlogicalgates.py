@@ -70,18 +70,17 @@ def tailor_logical_gate(
     qecc = qecc.get_e_matrix()
     if not isinstance(connectivity, Connectivity):
         raise TypeError("Create connectivity object via function 'get_conn'!")
-    connectivity = connectivity.matrix
     if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int):
         raise TypeError("Create circuit object via function 'get_circuit'!")
     if isinstance(logical_gate, Circuit):
-        logical_gate = logical_gate.get_as_clifford()
+        logical_gate = logical_gate.to_clifford()
         add_phases = np.roll(logical_gate.phase, len(qecc[0])-len(qecc[:, 0])//2)
         logical_gate = logical_gate.symplectic_matrix
     else:
         add_phases = None
     if isinstance(logical_gate, int):
         logical_gate = symplectic_t(logical_gate, len(qecc[:, 0])//2)
-    gf = GateFinder(num_cz_layers, connectivity, qecc, log_to_console,
+    gf = GateFinder(num_cz_layers, connectivity.matrix, qecc, log_to_console,
                     log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
@@ -195,7 +194,7 @@ def tailor_multiple_logical_gates(
             c = gf.get_circuit_implementation()
             if kwargs.get("optimize", True):
                 c.shallow_optimize()
-            stor["Gates"][i] = {"Circuit": c.get_as_string(),
+            stor["Gates"][i] = {"Circuit": c.__str__(),
                                 "Status": gf.get_status(),
                                 "Runtime": gf.get_runtime()}
         else:
