@@ -186,6 +186,13 @@ class Circuit:
         for op, qubits in self._gates:
             circuit.append((op, [map.get(i, i) for i in qubits]))
         return circuit
+    
+    def two_qubit_gate_count(self) -> int:
+        i = 0
+        for op, qubits in self._gates:
+            if len(qubits) == 2:
+                i += 1
+        return i
 
     def append(self, gate: Union[Gate, List[Gate]]):
         if isinstance(gate, list):
