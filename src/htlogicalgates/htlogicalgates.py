@@ -16,58 +16,73 @@ from .resources.resources import load_qecc, load_connectivity
 from .connectivity import Connectivity
 from .quantum_ecc import QECC
 
-def tailor_logical_gate(qecc : QECC,
-                      connectivity : Connectivity,
-                      logical_gate : Union[Circuit, int],
-                      num_cz_layers : int, time_limit : float = -1,
-                      log_to_console : bool = False,
-                      log_file : str = "",
-                      **kwargs) -> Tuple[Optional[Circuit], str]:
-    """Find a circuit implementation for a Clifford gate of a given quantum
+
+def tailor_logical_gate(
+    qecc: QECC,
+    connectivity: Connectivity,
+    logical_gate: Union[Circuit, int],
+    num_cz_layers: int,
+    time_limit: float = -1,
+    log_to_console: bool = False,
+    log_file: str = "",
+    **kwargs
+) -> Tuple[Optional[Circuit], str]:
+    """
+    Find a circuit implementation for a Clifford gate of a given quantum
     error-correcting code tailored to a specified hardware connectivity. Some
-    codes and connectivities can be accesed by their names. For more information,
+    codes and connectivities can be accessed by their names. For more information,
     see `htlogicalgates.codes`.
 
-    Args:
-        qecc (QECC): Quantum error-correcting code for which a logical circuit \
-        should be tailored.
-        connectivity (Connectivity): Connectivity to tailor circuit to. 
-        logical_gate (Union[int, Circuit]): Representation of the \
-        logical gate in form of a circuit or integer.
-        num_cz_layers (int): Number of controlled-Z gate layers of the ansatz with which \
-        the circuit should be compiled.
-        time_limit (float, optional): Time in seconds until the programm aborts \
-        regardless of whether or not a circuit implementation has been found A value \
-        of -1 removes the time limit. Defaults to -1.
-        log_to_console (bool, optional): Whether or not Gurobi should log its progress \
-        to the console. Defaults to False.
-        log_file (str, optional): File path of the log created by Gurobi. An emptry \
-        string removes the log-file. Defaults to "".
-        gurobi (Dict[Any, Any], optional): Additional arguments for the Gurobi solver.
-        optimize (bool, optional): Perform a slight optimization of single-qubit gates. \
-        Defaults to True.
-        perm (Tuple[bool, bool], optional): Defaults to [False, False] 
-    Returns:
-        Tuple[Optional[Circuit], str]: A representation of the circuit in form of a \
+    Parameters
+    ----------
+    * `qecc: QECC` \\
+        Quantum error-correcting code for which a logical circuit should be tailored.
+    * `connectivity: Connectivity` \\
+        Connectivity to tailor circuit to. 
+    * `logical_gate : Union[Circuit, int]` \\
+        Representation of the logical gate in form of a circuit or integer.
+    * `num_cz_layers : int` \\
+        Number of controlled-Z gate layers of the ansatz with which the circuit should
+        be compiled.
+    * `time_limit : float, optional` \\
+        Time in seconds until the programm aborts regardless of whether or not a circuit
+        implementation has been found A value of -1 removes the time limit, by default -1.
+    * `log_to_console : bool, optional` \\
+        Whether or not Gurobi should log its progress to the console, by default False.
+    * `log_file : str, optional` \\
+        File path of the log created by Gurobi. An emptry string removes the log-file, 
+        by default "".
+
+    Returns
+    -------
+    Tuple[Optional[Circuit], str]
+        A representation of the circuit in form of a \
         member the circuit class and a string containing the final status message. \
         If a circuit has not been found, `None` is returned instead of the circuit.
 
-    Examples:
+    Examples
+    --------
         >>> circ = find_one_logical_gate("4_2_2", "circular", "H 0", 2, -1, True)
+
     """
-    if not isinstance(qecc, QECC): raise TypeError("Create qecc object via function 'get_qecc'!")
+    if not isinstance(qecc, QECC):
+        raise TypeError("Create qecc object via function 'get_qecc'!")
     qecc = qecc.get_e_matrix()
-    if not isinstance(connectivity, Connectivity): raise TypeError("Create connectivity object via function 'get_conn'!")
+    if not isinstance(connectivity, Connectivity):
+        raise TypeError("Create connectivity object via function 'get_conn'!")
     connectivity = connectivity.matrix
-    if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int): raise TypeError("Create circuit object via function 'get_circuit'!")
+    if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int):
+        raise TypeError("Create circuit object via function 'get_circuit'!")
     if isinstance(logical_gate, Circuit):
         logical_gate = logical_gate.get_as_clifford()
-        add_phases = np.roll(logical_gate.phase, len(qecc[0])-len(qecc[:,0])//2)
+        add_phases = np.roll(logical_gate.phase, len(qecc[0])-len(qecc[:, 0])//2)
         logical_gate = logical_gate.symplectic_matrix
     else:
         add_phases = None
-    if isinstance(logical_gate, int): logical_gate = symplectic_t(logical_gate, len(qecc[:,0])//2)
-    gf = GateFinder(num_cz_layers, connectivity, qecc, log_to_console, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
+    if isinstance(logical_gate, int):
+        logical_gate = symplectic_t(logical_gate, len(qecc[:, 0])//2)
+    gf = GateFinder(num_cz_layers, connectivity, qecc, log_to_console,
+                    log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_logical_gate(logical_gate)
@@ -76,7 +91,8 @@ def tailor_logical_gate(qecc : QECC,
     if gf.has_solution():
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
             print(add_phases)
-            ps = Circuit.get_paulis_as_circuit(sum([qecc[:,i] for i in np.nonzero(add_phases)]))
+            ps = Circuit.get_paulis_as_circuit(
+                sum([qecc[:, i] for i in np.nonzero(add_phases)]))
             c = ps + gf.get_circuit_implementation()
             if kwargs.get("optimize", True):
                 c.shallow_optimize()
@@ -89,73 +105,89 @@ def tailor_logical_gate(qecc : QECC,
     else:
         return None, gf.get_status()
 
-def tailor_multiple_logical_gates(qecc : QECC,
-                      connectivity : Connectivity,
-                      logical_gates : Iterable[int],
-                      num_cz_layers : int,
-                      output_file : str = "",
-                      time_limit : float = -1,
-                      log_file : str = "",
-                      progress_bar : bool = False,
-                      save_every : int = 1,
-                      **kwargs):
-    """Find a circuit implementations for multiple Clifford gates of a given quantum
+
+def tailor_multiple_logical_gates(
+    qecc: QECC,
+    connectivity: Connectivity,
+    logical_gates: Iterable[int],
+    num_cz_layers: int,
+    output_file: str = "",
+    time_limit: float = -1,
+    log_file: str = "",
+    progress_bar: bool = False,
+    save_every: int = 1,
+    **kwargs
+) -> dict:
+    """
+    Find a circuit implementations for multiple Clifford gates of a given quantum
     error-correcting code tailored to a specified hardware connectivity. Some
-    codes and connectivities can be accesed by their names. For more information,
+    codes and connectivities can be accessed by their names. For more information,
     see `htlogicalgates.codes`.
 
-    Args:
-        qecc (Union[str, NDArray]): Name of code or numpy array of shape `(2n,n+k)` \
-        consisting logical Pauli operators and stabilizers of a code. 
-        connectivity (Union[str, NDArray]): Name of connectivity or numpy array \
-        of shape (n,n) representing the connectivity matrix. 
-        logical_gates (Iterable[int]): Integers representing logical Clifford gates.
-        num_cz_layers (int): Number of controlled-Z gate layers of the ansatz with which \
-        the circuit should be compiled.
-        time_limit (float, optional): Time in seconds until the programm aborts \
-        regardless of whether or not a circuit implementation has been found A value \
-        of -1 removes the time limit. Defaults to -1.
-        log_to_console (bool, optional): Whether or not Gurobi should log its progress \
-        to the console. Defaults to False.
-        log_file (str, optional): File path of the log created by Gurobi. An emptry \
-        string removes the log-file. Defaults to "".
-        gurobi (Dict[Any, Any], optional): Additional arguments for the Gurobi solver.
-        optimize (bool, optional): Perform a slight optimization of single-qubit gates. \
-        Defaults to True.
-        perm (Tuple[bool, bool], optional): Defaults to [False, False] 
-    Raises:
-        TypeError: _description_
-        TypeError: _description_
+    Parameters
+    ----------
+    * `qecc: Union[str, NDArray]` \\
+        Name of code or numpy array of shape `(2n,n+k)` consisting logical Pauli
+          operators and stabilizers of a code. 
+    * `connectivity: Union[str, NDArray]` \\
+        Name of connectivity or numpy array of shape (n,n) representing the
+          connectivity matrix. 
+    * `logical_gates: Iterable[int]` \\
+        Integers representing logical Clifford gates.
+    * `num_cz_layers: int` \\
+        Number of controlled-Z gate layers of the ansatz with which the circuit
+          should be compiled.
+    * `time_limit: float, optional` \\
+        Time in seconds until the programm aborts regardless of whether or not a
+        circuit implementation has been found A value of -1 removes the time limit. 
+        Defaults to -1.
+    * `log_to_console: bool, optional` \\
+        Whether or not Gurobi should log its progress to the console. Defaults to False.
+    * `log_file: str, optional` \\
+        File path of the log created by Gurobi. An emptry string removes the log-file. 
+        Defaults to "".
+    * `gurobi: Dict[Any, Any], optional` \\
+        Additional arguments for the Gurobi solver.
+    * `optimize: bool, optional` \\
+        Perform a slight optimization of single-qubit gates. Defaults to True.
+    * `perm: Tuple[bool, bool], optional` \\
+        Defaults to [False, False] 
 
-    Returns:
-        _type_: _description_
+    Returns
+    -------
     """
-    if not isinstance(qecc, QECC): raise TypeError("Create qecc object via function 'get_code'!")
+    if not isinstance(qecc, QECC):
+        raise TypeError("Create qecc object via function 'get_code'!")
     qecc = qecc.get_e_matrix()
-    if not isinstance(connectivity, Connectivity): raise TypeError("Create connectivity object via function 'get_conn'!")
+    if not isinstance(connectivity, Connectivity):
+        raise TypeError("Create connectivity object via function 'get_conn'!")
     connectivity = connectivity.matrix
     if progress_bar:
         try:
             from tqdm import tqdm
-            f = lambda x : tqdm(x, smoothing=0)
+            def f(x): return tqdm(x, smoothing=0)
         except ImportError:
             print("WARNING: Package 'tqdm' is not installed. Continuing without progress bar.")
-            f = lambda x : x
-    else: 
-        f = lambda x : x
-    gf = GateFinder(num_cz_layers, connectivity, qecc, False, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
+            def f(x): return x
+    else:
+        def f(x): return x
+    gf = GateFinder(num_cz_layers, connectivity, qecc, False, log_file,
+                    kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_target_function()
-    stor = {"Meta" : {"Connectivity" : str(connectivity),
-                      "Code" : str(qecc),
-                      "n" : gf.n,
-                      "k" : gf.k,
-                      "Number CZ layers" : num_cz_layers,
-                      "Time limit" : time_limit,
-                      "Started" : str(datetime.now())
-                      },
-            "Gates" : {}}
+    stor = {
+        "Meta": {
+            "Connectivity": str(connectivity),
+            "Code": str(qecc),
+            "n": gf.n,
+            "k": gf.k,
+            "Number CZ layers": num_cz_layers,
+            "Time limit": time_limit,
+            "Started": str(datetime.now())
+        },
+        "Gates": {}
+    }
     for num, i in enumerate(f(logical_gates)):
         gf.set_logical_gate(symplectic_t(i, gf.k))
         gf.find_gate()
@@ -163,14 +195,14 @@ def tailor_multiple_logical_gates(qecc : QECC,
             c = gf.get_circuit_implementation()
             if kwargs.get("optimize", True):
                 c.shallow_optimize()
-            stor["Gates"][i] = {"Circuit" : c.get_as_string(),
-                                "Status" : gf.get_status(),
-                                "Runtime" : gf.get_runtime()}
+            stor["Gates"][i] = {"Circuit": c.get_as_string(),
+                                "Status": gf.get_status(),
+                                "Runtime": gf.get_runtime()}
         else:
-            stor["Gates"][i] = {"Circuit" : None,
-                                "Status" : gf.get_status(),
-                                "Runtime" : gf.get_runtime()}
-        if (num+1)%save_every == 0:
+            stor["Gates"][i] = {"Circuit": None,
+                                "Status": gf.get_status(),
+                                "Runtime": gf.get_runtime()}
+        if (num+1) % save_every == 0:
             if output_file != "":
                 with open(output_file, 'w') as f:
                     json.dump(stor, f)
@@ -180,11 +212,18 @@ def tailor_multiple_logical_gates(qecc : QECC,
             json.dump(stor, f)
     return stor
 
+
 class GateFinder:
-    def __init__(self, num_CZL : int, con : NDArray, enc : NDArray,
-                 log_to_console : bool = False, log_file : str = "",
-                 gurobi : Dict[Any, Any] = {},
-                 perm : Tuple[bool, bool] = [False, False]):
+    def __init__(
+        self,
+        num_CZL: int,
+        con: NDArray,
+        enc: NDArray,
+        log_to_console: bool = False,
+        log_file: str = "",
+        gurobi: Dict[Any, Any] = {},
+        perm: Tuple[bool, bool] = [False, False]
+    ):
         self.NUM_CZL = num_CZL
         self.CON = con
         self.ENC = Clifford.from_matrix(enc)
@@ -193,7 +232,8 @@ class GateFinder:
         self.active_gate = False
 
         self.env = Enviroment(log_to_console, log_file, gurobi)
-        self.SCLs = [create_SCL(self.n, self.env)] + [create_cons_SCL(self.n, self.env) for _ in range(self.NUM_CZL)]
+        self.SCLs = [create_SCL(self.n, self.env)] + \
+            [create_cons_SCL(self.n, self.env) for _ in range(self.NUM_CZL)]
         self.CZLs = [create_CZL(self.CON, self.env) for _ in range(self.NUM_CZL)]
         self.LOGICAL, self.LOG_IDS = self.env.create_predef_bin_matrix(2*self.k, 2*self.k)
         self.FREEDOM = create_reduced_freedom_matrix(self.n, self.k, self.env)
@@ -210,14 +250,14 @@ class GateFinder:
         enc_expr = ExprMatrix.create_from_array(self.ENC.symplectic_matrix)
         self.env.add_equality_constraint_mat(enc_expr@(self.LOGICAL.create_expanded_dims(self.n + self.k, self.n + self.k) + self.FREEDOM),
                                              self.ANSATZ@enc_expr, True)
-        
+
         self.lin_solv = LinSolver(enc.T)
-        
-    def set_time_limit(self, time_limit : float):
+
+    def set_time_limit(self, time_limit: float):
         self.env.set_time_limit(time_limit)
 
-    def set_logical_gate(self, logical_gate : NDArray):
-        self.env.set_many_predef_var(logical_gate%2, self.LOG_IDS)
+    def set_logical_gate(self, logical_gate: NDArray):
+        self.env.set_many_predef_var(logical_gate % 2, self.LOG_IDS)
         self.active_gate = True
 
     def set_target_function(self):
@@ -225,7 +265,7 @@ class GateFinder:
         for czl in self.CZLs:
             for i in range(self.n):
                 for j in range(i+1, self.n):
-                    e = e + czl[self.n+i,j]
+                    e = e + czl[self.n+i, j]
         self.env.set_target_function(e)
 
     def has_solution(self) -> bool:
@@ -233,26 +273,28 @@ class GateFinder:
 
     def get_status(self) -> str:
         return self.env.get_status()
-    
+
     def get_runtime(self) -> float:
         return self.env.get_runtime()
-    
+
     def get_work(self) -> float:
         return self.env.get_work()
 
     def find_gate(self):
-        assert(self.active_gate)
+        assert (self.active_gate)
         self.env.solve()
 
     def get_circuit_implementation(self) -> Circuit:
-        cliffs : List[Clifford] = [None] * (2*self.NUM_CZL + 1)
-        circs : List[Circuit] = [None] * (2*self.NUM_CZL + 1)
-        cliffs[::2] = [Clifford.from_matrix(self.env.evaluate_matrix(i)) for i in self.SCLs]
-        cliffs[1::2] = [Clifford.from_matrix(self.env.evaluate_matrix(i)) for i in self.CZLs]
-        tot_cliff : Clifford = cliffs[0]
+        cliffs: List[Clifford] = [None] * (2*self.NUM_CZL + 1)
+        circs: List[Circuit] = [None] * (2*self.NUM_CZL + 1)
+        cliffs[::2] = [Clifford.from_matrix(
+            self.env.evaluate_matrix(i)) for i in self.SCLs]
+        cliffs[1::2] = [Clifford.from_matrix(
+            self.env.evaluate_matrix(i)) for i in self.CZLs]
+        tot_cliff: Clifford = cliffs[0]
         circs[::2] = [Circuit.get_SCL_as_circuit(i) for i in cliffs[::2][::-1]]
         circs[1::2] = [Circuit.get_CZL_as_circuit(i) for i in cliffs[1::2][::-1]]
-        
+
         for c in cliffs[1:]:
             tot_cliff = c@tot_cliff
         if self.Perms[0] != None:
@@ -264,5 +306,6 @@ class GateFinder:
             tot_cliff = self.Perms[1]@tot_cliff
             circs.append(Circuit.get_perm_as_circuit(self.Perms[1]))
 
-        paulis = Circuit.get_paulis_as_circuit(self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
+        paulis = Circuit.get_paulis_as_circuit(
+            self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
         return sum(circs, start=paulis)
