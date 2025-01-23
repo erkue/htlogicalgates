@@ -1,4 +1,5 @@
 # Hardware-Tailored Logical Gates
+[![Tests](https://github.com/erkue/htlogicalgates/actions/workflows/run-tests.yml/badge.svg)](https://github.com/erkue/htlogicalgates/actions/workflows/run-tests.yml)
 
 This package can be used to compile circuit implementations for **logical Clifford gates** of **quantum error-correcting codes**. The main features are
 
