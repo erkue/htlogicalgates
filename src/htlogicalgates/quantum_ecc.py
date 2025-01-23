@@ -1,15 +1,15 @@
 import numpy as np
-from typing import List, Optional
 from numpy.typing import NDArray
 
 from ._global_vars import ITYPE
 from .symplectic_rep.helper import pauli_string_to_list
 from .resources.resources import load_qecc
 
+
 class QECC:
     pass
 
-    def __init__(self, e_mat : NDArray):
+    def __init__(self, e_mat: NDArray):
         self._e_mat = e_mat
         self._distance = -1
 
@@ -33,6 +33,7 @@ class QECC:
     def _compute_distance(self):
         pass
 
+
 def get_qecc(*inp) -> QECC:
     if len(inp) == 0:
         raise ValueError(f"Input '{str(inp)}' is invalid.")
@@ -51,5 +52,6 @@ def get_qecc_from_paulis(x_logicals, z_logicals, stabilizers) -> QECC:
     els = [pauli_string_to_list(i, n) for i in x_logicals + z_logicals + stabilizers]
     return QECC(np.array(els, dtype=ITYPE).T)
 
-def get_qecc_from_string(s : str) -> QECC:
+
+def get_qecc_from_string(s: str) -> QECC:
     return QECC(load_qecc(s))
