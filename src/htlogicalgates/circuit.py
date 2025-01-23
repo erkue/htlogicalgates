@@ -17,12 +17,14 @@ def get_circuit(inp, qubits: int):
 
 class Operation(Enum):
     CZ = "CZ"
+    CX = "CX"
     I = "I"
     S = "S"
+    SDG = "SDG"
     H = "H"
     R = "C_ZYX"  # R = S H, X<-Y<-Z<-X
     R_DAG = "C_XYZ"  # R_DAG = H S_DAG, X->Y->Z->X
-    SQRT_X_DAG = "SQRT_X_DAG"  # SQRT_X_DAG = H S_DAG H
+    SXDG = "SQRT_X_DAG"  # SQRT_X_DAG = H S_DAG H
     SWAP = "SWAP"
     BARRIER = ""
     X = "X"
@@ -80,7 +82,7 @@ def get_clifford_of_operation(op: Operation, ts: List[int], N: int):
         m[ts[0]+N, ts[0]] = m[ts[0], ts[0]+N] = 1
         m[ts[0]+N, ts[0]+N] = 0
         return Clifford.from_matrix(m)
-    if op == Operation.SQRT_X_DAG:
+    if op == Operation.SXDG:
         assert (len(ts) == 1)
         m = np.identity(2*N, dtype=ITYPE)
         m[ts[0], ts[0]+N] = 1
@@ -135,7 +137,7 @@ class Circuit:
             elif m == (1, 0, 1, 1):
                 circ.append((Operation.S, [i]))
             elif m == (1, 1, 0, 1):
-                circ.append((Operation.SQRT_X_DAG, [i]))
+                circ.append((Operation.SXDG, [i]))
             elif m == (0, 1, 1, 0):
                 circ.append((Operation.H, [i]))
             elif m == (1, 1, 1, 0):
@@ -244,7 +246,7 @@ class Circuit:
     def insert(self, index: int, a: Gate):
         self._circ.insert(index, a)
 
-    def get_as_string(self) -> str:
+    def __str__(self) -> str:
         s = ""
         for op, ts in self._circ:
             s += op.value
@@ -252,6 +254,34 @@ class Circuit:
                 s += f" {str(t)}"
             s += "\n"
         return s
+
+    def to_qiskit(self):
+        import qiskit
+        QC = qiskit.QuantumCircuit
+
+        gates = {
+            Operation.X: QC.x, Operation.Y: QC.y, Operation.Z: QC.z, Operation.H: QC.h,
+            Operation.SDG: QC.sdg, Operation.S: QC.s, Operation.CX: QC.cx,
+            Operation.Z: QC.cz, Operation.SXDG: QC.sxdg,
+            Operation.SWAP: QC.swap, Operation.I: QC.id
+        }
+
+        circuit = QC(self.N)
+
+        for op, qubits in self._circ:
+            if op in gates:
+                gates[op](circuit, *qubits)
+            elif op == Operation.R_DAG:
+                circuit.sdg(*qubits)
+                circuit.h(*qubits)
+            elif op == Operation.R:
+                circuit.h(*qubits)
+                circuit.s(*qubits)
+            elif op == Operation.BARRIER:
+                circuit.barrier()
+            else:
+                assert False, f"Unknown op {op}"
+        return circuit
 
     def get_as_clifford(self) -> Clifford:
         c = Clifford.from_matrix(np.identity(2*self.N, dtype=ITYPE))
