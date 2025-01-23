@@ -2,11 +2,14 @@ from __future__ import annotations
 from enum import Enum
 from typing import Tuple, List, Optional
 
-from .clifford_gate import Clifford
-from .._global_vars import ITYPE
+from .symplectic_rep.clifford_gate import Clifford
+from ._global_vars import ITYPE
 
 import numpy as np
 from numpy.typing import NDArray
+
+def get_circuit(inp, qubits : int):
+    return Circuit.get_circuit_from_string(inp, qubits)
 
 # Identical to stim circuit language
 class Operation(Enum):
@@ -167,7 +170,7 @@ class Circuit:
         try:
             for j, l in enumerate(circ.splitlines()):
                 parts = l.strip().split()
-                c.append((Operation(parts[0]), [int(i) for i in parts[1:]]))
+                c.append((Operation(parts[0].upper()), [int(i) for i in parts[1:]]))
                 m = max(max(c[-1][1])+1, m)   
         except ValueError:
             raise ValueError(f"Invalid instruction in line {str(j)}: '{l}'")

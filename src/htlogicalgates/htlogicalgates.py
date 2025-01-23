@@ -12,12 +12,14 @@ from .grb_interface.grb_math_interface import *
 from .symplectic_rep import *
 from .symplectic_rep.random_symplectic import symplectic_t
 from .symplectic_rep.helper import LinSolver
-from .codes.codes import get_encoding_of_code, get_connectivity
+from .resources.resources import load_qecc, load_connectivity
+from .connectivity import Connectivity
+from .quantum_ecc import QECC
 
-def tailor_logical_gate(code : Union[str, NDArray],
-                      connectivity : Union[str, NDArray],
-                      logical_gate : Union[str, Circuit, int, NDArray],
-                      num_CZL : int, time_limit : float = -1,
+def tailor_logical_gate(qecc : QECC,
+                      connectivity : Connectivity,
+                      logical_gate : Union[Circuit, int],
+                      num_cz_layers : int, time_limit : float = -1,
                       log_to_console : bool = False,
                       log_file : str = "",
                       **kwargs) -> Tuple[Optional[Circuit], str]:
@@ -27,13 +29,12 @@ def tailor_logical_gate(code : Union[str, NDArray],
     see `htlogicalgates.codes`.
 
     Args:
-        code (Union[str, NDArray]): Name of code or numpy array of shape `(2n,n+k)` \
-        consisting logical Pauli operators and stabilizers of a code. 
-        connectivity (Union[str, NDArray]): Name of connectivity or numpy array \
-        of shape (n,n) representing the connectivity matrix. 
-        logical_gate (Union[str, int, NDArray]): Representation of the \
-        logical gate in form of a string, circuit, integer, or numpy array.
-        num_CZL (int): Number of controlled-Z gate layers of the ansatz with which \
+        qecc (QECC): Quantum error-correcting code for which a logical circuit \
+        should be tailored.
+        connectivity (Connectivity): Connectivity to tailor circuit to. 
+        logical_gate (Union[int, Circuit]): Representation of the \
+        logical gate in form of a circuit or integer.
+        num_cz_layers (int): Number of controlled-Z gate layers of the ansatz with which \
         the circuit should be compiled.
         time_limit (float, optional): Time in seconds until the programm aborts \
         regardless of whether or not a circuit implementation has been found A value \
@@ -54,19 +55,19 @@ def tailor_logical_gate(code : Union[str, NDArray],
     Examples:
         >>> circ = find_one_logical_gate("4_2_2", "circular", "H 0", 2, -1, True)
     """
-    if isinstance(code, str): code = get_encoding_of_code(code)
-    if not isinstance(code, np.ndarray): raise TypeError("Invalid code argument!")
-    if type(connectivity) == str: connectivity = get_connectivity(connectivity, len(code[:,0])//2)
-    if not isinstance(connectivity, np.ndarray): raise TypeError("Invalid connectivity argument!")
-    if isinstance(logical_gate, str): logical_gate = Circuit.get_circuit_from_string(logical_gate, len(code[0])-len(code[:,0])//2)
+    if not isinstance(qecc, QECC): raise TypeError("Create qecc object via function 'get_qecc'!")
+    qecc = qecc.get_e_matrix()
+    if not isinstance(connectivity, Connectivity): raise TypeError("Create connectivity object via function 'get_conn'!")
+    connectivity = connectivity.matrix
+    if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int): raise TypeError("Create circuit object via function 'get_circuit'!")
     if isinstance(logical_gate, Circuit):
         logical_gate = logical_gate.get_as_clifford()
-        add_phases = np.roll(logical_gate.phase, len(code[0])-len(code[:,0])//2)
+        add_phases = np.roll(logical_gate.phase, len(qecc[0])-len(qecc[:,0])//2)
         logical_gate = logical_gate.symplectic_matrix
     else:
         add_phases = None
-    if isinstance(logical_gate, int): logical_gate = symplectic_t(logical_gate, len(code[:,0])//2)
-    gf = GateFinder(num_CZL, connectivity, code, log_to_console, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
+    if isinstance(logical_gate, int): logical_gate = symplectic_t(logical_gate, len(qecc[:,0])//2)
+    gf = GateFinder(num_cz_layers, connectivity, qecc, log_to_console, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_logical_gate(logical_gate)
@@ -75,7 +76,7 @@ def tailor_logical_gate(code : Union[str, NDArray],
     if gf.has_solution():
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
             print(add_phases)
-            ps = Circuit.get_paulis_as_circuit(sum([code[:,i] for i in np.nonzero(add_phases)]))
+            ps = Circuit.get_paulis_as_circuit(sum([qecc[:,i] for i in np.nonzero(add_phases)]))
             c = ps + gf.get_circuit_implementation()
             if kwargs.get("optimize", True):
                 c.shallow_optimize()
@@ -88,10 +89,10 @@ def tailor_logical_gate(code : Union[str, NDArray],
     else:
         return None, gf.get_status()
 
-def tailor_multiple_logical_gates(code : Union[str, NDArray],
-                      connectivity : Union[str, NDArray],
+def tailor_multiple_logical_gates(qecc : QECC,
+                      connectivity : Connectivity,
                       logical_gates : Iterable[int],
-                      num_CZL : int,
+                      num_cz_layers : int,
                       output_file : str = "",
                       time_limit : float = -1,
                       log_file : str = "",
@@ -104,12 +105,12 @@ def tailor_multiple_logical_gates(code : Union[str, NDArray],
     see `htlogicalgates.codes`.
 
     Args:
-        code (Union[str, NDArray]): Name of code or numpy array of shape `(2n,n+k)` \
+        qecc (Union[str, NDArray]): Name of code or numpy array of shape `(2n,n+k)` \
         consisting logical Pauli operators and stabilizers of a code. 
         connectivity (Union[str, NDArray]): Name of connectivity or numpy array \
         of shape (n,n) representing the connectivity matrix. 
         logical_gates (Iterable[int]): Integers representing logical Clifford gates.
-        num_CZL (int): Number of controlled-Z gate layers of the ansatz with which \
+        num_cz_layers (int): Number of controlled-Z gate layers of the ansatz with which \
         the circuit should be compiled.
         time_limit (float, optional): Time in seconds until the programm aborts \
         regardless of whether or not a circuit implementation has been found A value \
@@ -129,10 +130,10 @@ def tailor_multiple_logical_gates(code : Union[str, NDArray],
     Returns:
         _type_: _description_
     """
-    if isinstance(code, str): code = get_encoding_of_code(code)
-    if not isinstance(code, np.ndarray): raise TypeError("Invalid code argument!")
-    if type(connectivity) == str: connectivity = get_connectivity(connectivity, len(code[:,0])//2)
-    if not isinstance(connectivity, np.ndarray): raise TypeError("Invalid connectivity argument!")
+    if not isinstance(qecc, QECC): raise TypeError("Create qecc object via function 'get_code'!")
+    qecc = qecc.get_e_matrix()
+    if not isinstance(connectivity, Connectivity): raise TypeError("Create connectivity object via function 'get_conn'!")
+    connectivity = connectivity.matrix
     if progress_bar:
         try:
             from tqdm import tqdm
@@ -142,15 +143,15 @@ def tailor_multiple_logical_gates(code : Union[str, NDArray],
             f = lambda x : x
     else: 
         f = lambda x : x
-    gf = GateFinder(num_CZL, connectivity, code, False, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
+    gf = GateFinder(num_cz_layers, connectivity, qecc, False, log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_target_function()
     stor = {"Meta" : {"Connectivity" : str(connectivity),
-                      "Code" : str(code),
+                      "Code" : str(qecc),
                       "n" : gf.n,
                       "k" : gf.k,
-                      "Number CZL" : num_CZL,
+                      "Number CZ layers" : num_cz_layers,
                       "Time limit" : time_limit,
                       "Started" : str(datetime.now())
                       },
