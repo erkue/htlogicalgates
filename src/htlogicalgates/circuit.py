@@ -2,8 +2,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Tuple, List, Optional
 
-from .clifford_gate import Clifford
-from .._global_vars import ITYPE
+from .symplectic_rep.clifford_gate import Clifford
+from ._global_vars import ITYPE
 
 import numpy as np
 from numpy.typing import NDArray

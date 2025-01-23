@@ -1,4 +1,4 @@
 __pycache__/
-_test.ipynb
 .venv
 *.egg-info
+*test.ipynb

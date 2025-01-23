@@ -4,6 +4,27 @@ from numpy.typing import NDArray
 
 from .._global_vars import ITYPE
 
+def pauli_string_to_list(s : str, n : int):
+    out = [0] * (2*n)
+    ps = s.split()
+    for p in ps:
+        try:
+            tar = int(p[1:])
+        except ValueError:
+            raise ValueError(f"Pauli string '{str(p[1:])}' could not be converted to Pauli! Unknown symbol '{p}'")
+        if tar >= n:
+            raise ValueError(f"Pauli string '{str(p[1:])}' could not be converted to Pauli! Index '{str(tar)}' to large for n={str(n)}.")
+        if p[0] == "X":
+            out[tar] += 1
+        elif p[0] == "Y":
+            out[tar] += 1
+            out[tar+n] += 1
+        elif p[0] == "Z":
+            out[tar+n] += 1
+        else:
+            raise ValueError(f"Pauli string '{str(p[1:])}' could not be converted to Pauli! Unknown symbol '{p}'")
+    return [i%2 for i in out]
+
 def _expand_mat(m : NDArray) -> NDArray:
     rows, columns = np.shape(m)
     m_bar = np.zeros((rows+1, columns+1), dtype=ITYPE)
