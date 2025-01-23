@@ -71,7 +71,7 @@ def tailor_logical_gate(
     if not isinstance(connectivity, Connectivity):
         raise TypeError("Create connectivity object via function 'get_conn'!")
     if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int):
-        raise TypeError("Create circuit object via function 'get_circuit'!")
+        raise TypeError("Expected a `Circuit` object for `logical_gate`")
     if isinstance(logical_gate, Circuit):
         logical_gate = logical_gate.to_clifford()
         add_phases = np.roll(logical_gate.phase, len(qecc[0])-len(qecc[:, 0])//2)
@@ -90,7 +90,7 @@ def tailor_logical_gate(
     if gf.has_solution():
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
             print(add_phases)
-            ps = Circuit.get_paulis_as_circuit(
+            ps = Circuit.from_paulis(
                 sum([qecc[:, i] for i in np.nonzero(add_phases)]))
             c = ps + gf.get_circuit_implementation()
             if kwargs.get("optimize", True):
@@ -227,7 +227,7 @@ class GateFinder:
         self.CON = con
         self.ENC = Clifford.from_matrix(enc)
         self.n = len(self.CON)
-        self.k = self.ENC.M - self.n
+        self.k = self.ENC.m - self.n
         self.active_gate = False
 
         self.env = Enviroment(log_to_console, log_file, gurobi)
@@ -291,20 +291,20 @@ class GateFinder:
         cliffs[1::2] = [Clifford.from_matrix(
             self.env.evaluate_matrix(i)) for i in self.CZLs]
         tot_cliff: Clifford = cliffs[0]
-        circs[::2] = [Circuit.get_SCL_as_circuit(i) for i in cliffs[::2][::-1]]
-        circs[1::2] = [Circuit.get_CZL_as_circuit(i) for i in cliffs[1::2][::-1]]
+        circs[::2] = [Circuit.from_SCL(i) for i in cliffs[::2][::-1]]
+        circs[1::2] = [Circuit.from_CZL(i) for i in cliffs[1::2][::-1]]
 
         for c in cliffs[1:]:
             tot_cliff = c@tot_cliff
         if self.Perms[0] != None:
             self.Perms[0] = Clifford.from_matrix(self.env.evaluate_matrix(self.Perms[0]))
             tot_cliff = tot_cliff@self.Perms[0]
-            circs.insert(0, Circuit.get_perm_as_circuit(self.Perms[0]))
+            circs.insert(0, Circuit.from_permutation(self.Perms[0]))
         if self.Perms[1] != None:
             self.Perms[1] = Clifford.from_matrix(self.env.evaluate_matrix(self.Perms[1]))
             tot_cliff = self.Perms[1]@tot_cliff
-            circs.append(Circuit.get_perm_as_circuit(self.Perms[1]))
+            circs.append(Circuit.from_permutation(self.Perms[1]))
 
-        paulis = Circuit.get_paulis_as_circuit(
+        paulis = Circuit.from_paulis(
             self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
         return sum(circs, start=paulis)
