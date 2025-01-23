@@ -30,8 +30,6 @@ The package can be used in the following way
 ```py
 from htlogicalgates import *
 
-from htlogicalgates import *
-
 conn = get_conn("circular", n=4)
 qecc = get_qecc("4_2_2")
 log_gate = get_circuit("H 0", 2)
