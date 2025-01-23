@@ -14,11 +14,11 @@ from .symplectic_rep.random_symplectic import symplectic_t
 from .symplectic_rep.helper import LinSolver
 from .resources.resources import load_qecc, load_connectivity
 from .connectivity import Connectivity
-from .quantum_ecc import QECC
+from .stabilizercodes import StabilizerCode
 
 
 def tailor_logical_gate(
-    qecc: QECC,
+    qecc: StabilizerCode,
     connectivity: Connectivity,
     logical_gate: Union[Circuit, int],
     num_cz_layers: int,
@@ -65,7 +65,7 @@ def tailor_logical_gate(
         >>> circ = find_one_logical_gate("4_2_2", "circular", "H 0", 2, -1, True)
 
     """
-    if not isinstance(qecc, QECC):
+    if not isinstance(qecc, StabilizerCode):
         raise TypeError("Create qecc object via function 'get_qecc'!")
     qecc = qecc.get_e_matrix()
     if not isinstance(connectivity, Connectivity):
@@ -106,7 +106,7 @@ def tailor_logical_gate(
 
 
 def tailor_multiple_logical_gates(
-    qecc: QECC,
+    qecc: StabilizerCode,
     connectivity: Connectivity,
     logical_gates: Iterable[int],
     num_cz_layers: int,
@@ -155,7 +155,7 @@ def tailor_multiple_logical_gates(
     Returns
     -------
     """
-    if not isinstance(qecc, QECC):
+    if not isinstance(qecc, StabilizerCode):
         raise TypeError("Create qecc object via function 'get_code'!")
     qecc = qecc.get_e_matrix()
     if not isinstance(connectivity, Connectivity):

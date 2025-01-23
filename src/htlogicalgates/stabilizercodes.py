@@ -1,17 +1,21 @@
 import numpy as np
 from numpy.typing import NDArray
+from typing import Tuple
 
 from ._global_vars import ITYPE
 from .symplectic_rep.helper import pauli_string_to_list
 from .resources.resources import load_qecc
 
 
-class QECC:
-    pass
-
-    def __init__(self, e_mat: NDArray):
-        self._e_mat = e_mat
+class StabilizerCode:
+    def __init__(self, *inp):
+        if len(inp) == 0: raise ValueError(f"Input '{str(inp)}' is invalid.")
+        elif len(inp) == 1 and isinstance(inp[0], str): self._e_mat = load_qecc(*inp)
+        elif len(inp) == 1 and isinstance(inp[0], list) and len(inp[0]) == 3: self._e_mat = get_qecc_e_from_paulis(*(inp[0]))
+        elif len(inp) == 3: self._e_mat = get_qecc_e_from_paulis(*inp)
+        else: raise ValueError(f"Input '{str(inp)}' is invalid!")
         self._distance = -1
+        
 
     def get_e_matrix(self) -> NDArray:
         return self._e_mat
@@ -30,28 +34,16 @@ class QECC:
             self._compute_distance()
         return self._distance
 
+    @property
+    def nkd(self) -> Tuple[int, int, int]:
+        return (self.n, self.k, self.d)
+
     def _compute_distance(self):
         pass
 
-
-def get_qecc(*inp) -> QECC:
-    if len(inp) == 0:
-        raise ValueError(f"Input '{str(inp)}' is invalid.")
-    if len(inp) == 1 and isinstance(inp[0], str):
-        return get_qecc_from_string(*inp)
-    if len(inp) == 1 and isinstance(inp[0], list) and len(inp[0]) == 3:
-        return get_qecc_from_paulis(*(inp[0]))
-    if len(inp) == 3:
-        return get_qecc_from_paulis(*inp)
-    raise ValueError(f"Input '{str(inp)}' is invalid!")
-
-
-def get_qecc_from_paulis(x_logicals, z_logicals, stabilizers) -> QECC:
+def get_qecc_e_from_paulis(x_logicals, z_logicals, stabilizers) -> StabilizerCode:
     k = len(x_logicals)
     n = len(stabilizers) + k
     els = [pauli_string_to_list(i, n) for i in x_logicals + z_logicals + stabilizers]
-    return QECC(np.array(els, dtype=ITYPE).T)
+    return StabilizerCode(np.array(els, dtype=ITYPE).T)
 
-
-def get_qecc_from_string(s: str) -> QECC:
-    return QECC(load_qecc(s))

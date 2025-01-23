@@ -7,16 +7,17 @@ from ._global_vars import ITYPE
 
 
 class Connectivity:
-    def __init__(self, mat: NDArray):
-        if len(np.shape(mat)) != 2:
+    def __init__(self, inp, n : Optional[int] = None):
+        if isinstance(inp, str): self._mat = get_con_mat_from_name(inp, n)
+        elif isinstance(inp, list): self._mat = get_con_mat_from_list(inp)
+        elif isinstance(inp, np.ndarray): self._mat = inp
+        else: raise TypeError(f"Input of type '{str(type(inp))}' invalid!")
+        if np.shape(self._mat)[0] != np.shape(self._mat)[1]:
             raise ValueError("Connectivity matrix must be a 2d square matrix!")
-        if np.shape(mat)[0] != np.shape(mat)[1]:
-            raise ValueError("Connectivity matrix must be a 2d square matrix!")
-        self._mat = mat
         self._n = len(self._mat)
 
     @property
-    def n(self) -> int:
+    def num_qubits(self) -> int:
         return self._n
 
     @property
@@ -26,24 +27,8 @@ class Connectivity:
 
 Conn = Connectivity
 
+def get_con_mat_from_name(s: str, n: Optional[int] = None) -> NDArray:
+    return load_connectivity(s, n)
 
-def get_conn(inp, n: Optional[int] = None) -> Connectivity:
-    if isinstance(inp, str):
-        return get_con_from_name(inp, n)
-    if isinstance(inp, list):
-        return get_con_from_list(inp)
-    if isinstance(inp, np.ndarray):
-        return get_con_from_matrix(inp)
-    raise TypeError(f"Input of type '{str(type(inp))}' invalid!")
-
-
-def get_con_from_name(s: str, n: Optional[int] = None) -> Connectivity:
-    return get_con_from_matrix(load_connectivity(s, n))
-
-
-def get_con_from_matrix(m: NDArray) -> Connectivity:
-    return Connectivity(m)
-
-
-def get_con_from_list(m: List[List[int]]) -> Connectivity:
-    return get_con_from_matrix(np.array(m, dtype=ITYPE))
+def get_con_mat_from_list(m: List[List[int]]) -> NDArray:
+    return np.array(m, dtype=np.int32)

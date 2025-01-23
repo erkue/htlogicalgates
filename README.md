@@ -34,7 +34,7 @@ conn = get_conn("circular", n=4)
 qecc = get_qecc("4_2_2")
 log_gate = get_circuit("H 0", 2)
 
-circ = tailor_logical_gate(qecc, conn, log_gate, 2)
+circ, status = tailor_logical_gate(qecc, conn, log_gate, 2)
 ```
 
 Here, we construct a logical gate for the $⟦4,2,2⟧$-code, as indicated by the argument `"4_2_2"`. We use a `"circular"`-connectivity and search a circuit implementation for `"H 0"`, the Hadamard gate on logical qubit 0. The ansatz consists of `2` controlled-Z gate layers.
