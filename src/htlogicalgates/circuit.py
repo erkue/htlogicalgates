@@ -8,6 +8,8 @@ from ._global_vars import ITYPE
 import numpy as np
 from numpy.typing import NDArray
 
+class MissingOptionalLibraryError(Exception):
+    pass
 
 def get_circuit(inp, qubits: int):
     return Circuit.get_circuit_from_string(inp, qubits)
@@ -295,7 +297,11 @@ class Circuit:
         return s
 
     def to_qiskit(self):
-        import qiskit
+        try:
+            import qiskit
+        except ImportError:
+            raise MissingOptionalLibraryError("In order to use the function Circuit.to_qiskit(), Qiskit needs to be installed")
+        
         QC = qiskit.QuantumCircuit
 
         gates = {
