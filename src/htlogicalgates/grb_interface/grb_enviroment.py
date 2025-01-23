@@ -74,7 +74,7 @@ class Enviroment:
         if c is not None:
             self.model.remove(c)
         v = self._get_var_by_id(id)
-        self.model.addConstr(value == v, name=Enviroment.NAME_CONST_CONSTR + str(id))
+        self.model.addConstr(int(value) == v, name=Enviroment.NAME_CONST_CONSTR + str(id))
 
     def set_many_predef_var(self, values: NDArray, ids: NDArray):
         self.model.update()
