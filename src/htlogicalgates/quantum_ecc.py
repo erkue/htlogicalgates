@@ -2,6 +2,7 @@ import numpy as np
 from typing import List, Optional
 from numpy.typing import NDArray
 
+from ._global_vars import ITYPE
 from .symplectic_rep.helper import pauli_string_to_list
 from .resources.resources import load_qecc
 
@@ -47,7 +48,8 @@ def get_qecc(*inp) -> QECC:
 def get_qecc_from_paulis(x_logicals, z_logicals, stabilizers) -> QECC:
     k = len(x_logicals)
     n = len(stabilizers) + k
-    return QECC
+    els = [pauli_string_to_list(i, n) for i in x_logicals + z_logicals + stabilizers]
+    return QECC(np.array(els, dtype=ITYPE).T)
 
 def get_qecc_from_string(s : str) -> QECC:
     return QECC(load_qecc(s))

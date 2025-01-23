@@ -11,7 +11,7 @@ _automated_cons = {"linear" : "Connections exist between qubits $i$ and $i+1$.",
                   "circular" : "Connections exist between qubits $i$ and $(i+1)%n$.",
                   "all" : "Connections exist between all qubits."}
 
-_automated_qeccs = {"trivial n" : "The trivial [[n,n,1]] code."}
+_automated_qeccs = {r"trivial {n}" : "The trivial [[n,n,1]] code."}
 
 def get_json_resource(name : str):
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,8 +33,6 @@ def read_external_json(path : str, *loc : Any) -> NDArray:
             data = data[l]
         return np.array(data, dtype=ITYPE)
 
-def available_qeccs() -> Dict:
-    return {key : val[DESCR_KEY] for key, val in get_internal_qeccs().items()} + _automated_qeccs
 
 def load_qecc(name : str) -> NDArray:
     if name in get_internal_qeccs().keys():
@@ -60,5 +58,8 @@ def load_connectivity(name : str, n : Optional[int] = None) -> NDArray:
             return np.eye(n, n, 1, dtype=ITYPE) + np.eye(n, n, -1, dtype=ITYPE)
     raise ValueError(f"No connectivity found under name '{str(name)}'.")
 
+def available_qeccs() -> Dict:
+    return {key : val[DESCR_KEY] for key, val in get_internal_qeccs().items()} | _automated_qeccs
+
 def available_connectivities() -> Dict:
-    return {key : val[DESCR_KEY] for key, val in get_internal_connectivities().items()} + _automated_cons
+    return {key : val[DESCR_KEY] for key, val in get_internal_connectivities().items()} | _automated_cons

@@ -14,11 +14,11 @@ from .symplectic_rep.random_symplectic import symplectic_t
 from .symplectic_rep.helper import LinSolver
 from .resources.resources import load_qecc, load_connectivity
 from .connectivity import Connectivity
-from .qecc import QECC
+from .quantum_ecc import QECC
 
 def tailor_logical_gate(qecc : QECC,
                       connectivity : Connectivity,
-                      logical_gate : Union[str, Circuit, int],
+                      logical_gate : Union[Circuit, int],
                       num_cz_layers : int, time_limit : float = -1,
                       log_to_console : bool = False,
                       log_file : str = "",
@@ -32,8 +32,8 @@ def tailor_logical_gate(qecc : QECC,
         qecc (QECC): Quantum error-correcting code for which a logical circuit \
         should be tailored.
         connectivity (Connectivity): Connectivity to tailor circuit to. 
-        logical_gate (Union[str, int, Circuit]): Representation of the \
-        logical gate in form of a string, circuit, integer, or numpy array.
+        logical_gate (Union[int, Circuit]): Representation of the \
+        logical gate in form of a circuit or integer.
         num_cz_layers (int): Number of controlled-Z gate layers of the ansatz with which \
         the circuit should be compiled.
         time_limit (float, optional): Time in seconds until the programm aborts \
@@ -59,7 +59,7 @@ def tailor_logical_gate(qecc : QECC,
     qecc = qecc.get_e_matrix()
     if not isinstance(connectivity, Connectivity): raise TypeError("Create connectivity object via function 'get_conn'!")
     connectivity = connectivity.matrix
-    if isinstance(logical_gate, str): logical_gate = Circuit.get_circuit_from_string(logical_gate, len(qecc[0])-len(qecc[:,0])//2)
+    if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int): raise TypeError("Create circuit object via function 'get_circuit'!")
     if isinstance(logical_gate, Circuit):
         logical_gate = logical_gate.get_as_clifford()
         add_phases = np.roll(logical_gate.phase, len(qecc[0])-len(qecc[:,0])//2)

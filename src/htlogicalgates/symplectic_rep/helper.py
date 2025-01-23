@@ -14,12 +14,12 @@ def pauli_string_to_list(s : str, n : int):
             raise ValueError(f"Pauli string '{str(p[1:])}' could not be converted to Pauli! Unknown symbol '{p}'")
         if tar >= n:
             raise ValueError(f"Pauli string '{str(p[1:])}' could not be converted to Pauli! Index '{str(tar)}' to large for n={str(n)}.")
-        if p[0] == "X":
+        if p[0].upper() == "X":
             out[tar] += 1
-        elif p[0] == "Y":
+        elif p[0].upper() == "Y":
             out[tar] += 1
             out[tar+n] += 1
-        elif p[0] == "Z":
+        elif p[0].upper() == "Z":
             out[tar+n] += 1
         else:
             raise ValueError(f"Pauli string '{str(p[1:])}' could not be converted to Pauli! Unknown symbol '{p}'")
