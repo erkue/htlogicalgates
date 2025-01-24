@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "htlogicalgates"
-version = "0.2.0"
+version = "0.3.0"
 description = "Find circuit implementations for logical gates of QECCs."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -22,6 +22,7 @@ keywords = ["quantum information", "quantum error correction", "quantum circuit"
 dependencies = [
     "gurobipy>=11.0",
     "numpy>=1.23",
+    "qsalto>=0.2"
 ]
 
 [project.optional-dependencies]

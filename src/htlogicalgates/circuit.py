@@ -103,7 +103,7 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         p = np.zeros((2*n,), dtype=np.int32)
         p[qubits[0]] = 1
         return Clifford.from_matrix_with_phase(np.identity(2*n, dtype=np.int32), p)
-    raise ValueError(f"Operation '{op.value}' not known!")
+    raise ValueError(f"Operation '{op.value}' not known")
 
 
 class Circuit:
@@ -288,7 +288,7 @@ class Circuit:
                 circ.append((Operation.R, [i]))
             else:
                 raise ValueError(
-                    f"Gate with signature {str(m)} at qubit {str(i)} is not Clifford!")
+                    f"Gate with signature {str(m)} at qubit {str(i)} is not Clifford")
         return circ
 
     @staticmethod

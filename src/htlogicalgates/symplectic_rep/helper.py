@@ -1,14 +1,66 @@
 from functools import cache
 import numpy as np
 from numpy.typing import NDArray
+import copy
+from typing import Tuple, List
 
-from .._global_vars import ITYPE
+
+def matrix_rank(A: NDArray) -> int:
+    """ Computes the rank of a matrix A with coefficients in GF(2).
+    Taken with permission from package `htstabilizer`
+    """
+    if (rows := np.shape(A)[0]) != (columns := np.shape(A)[1]):
+        nA = np.zeros([max(rows, columns)]*2, dtype=A.dtype)
+        nA[0:rows, 0:columns] = A
+    else:
+        nA = A
+
+    def rref(A: np.ndarray) -> Tuple[np.ndarray, List[int]]:
+        """Compute the reduced-row echelon form of a matrix A 
+        with entries in the binary field GF(2). 
+
+        Parameters
+        ----------
+        A : np.ndarray
+            Input matrix, should only contain elements 0 or 1 as integers. 
+
+        Returns
+        -------
+        Tuple[np.ndarray, List[int]]
+            RREF of input matrix A as well as column indices of the pivot elements. 
+        """
+        m, n = A.shape  # m: rows, n: cols
+        A = A % 2
+        pivot_cols = []
+        h = 0
+        k = 0
+        while h < m and k < n:
+            found = False
+            i = h
+            while not found and i < m:
+                if A[i, k] == 1:
+                    found = True
+                    break
+                i += 1
+            if not found:
+                k += 1
+            else:
+                pivot_cols.append(k)
+                temp = copy.deepcopy(A[h, :])
+                A[h, :] = A[i, :]
+                A[i, :] = temp
+                for i in list(range(h)) + list(range(h+1, m)):
+                    A[i, :] = (A[i, :] + A[i, k]*A[h, :]) % 2
+                h += 1
+                k += 1
+        return (A, pivot_cols)
+
+    return len(rref(nA)[1])
 
 
-def pauli_string_to_list(s: str, n: int):
+def pauli_string_to_list(s: str, n: int) -> List[int]:
     out = [0] * (2*n)
-    ps = s.split()
-    for p in ps:
+    for p in s.split():
         try:
             tar = int(p[1:])
         except ValueError:
@@ -30,9 +82,21 @@ def pauli_string_to_list(s: str, n: int):
     return [i % 2 for i in out]
 
 
+def max_index_of_pauli(s: str) -> int:
+    m = -1
+    for p in s.split():
+        try:
+            tar = int(p[1:])
+        except ValueError:
+            raise ValueError(
+                f"Pauli string '{str(p[1:])}' could not be converted to Pauli! Unknown symbol '{p}'")
+        m = max(m, tar)
+    return m + 1
+
+
 def _expand_mat(m: NDArray) -> NDArray:
     rows, columns = np.shape(m)
-    m_bar = np.zeros((rows+1, columns+1), dtype=ITYPE)
+    m_bar = np.zeros((rows+1, columns+1), dtype=np.int32)
     m_bar[:rows, :columns] = m
     m_bar[-1, -1] = 1
     return m_bar
@@ -40,7 +104,7 @@ def _expand_mat(m: NDArray) -> NDArray:
 
 def _expand_vec(v: NDArray) -> NDArray:
     d = len(v)
-    v_bar = np.zeros((d+1,), dtype=ITYPE)
+    v_bar = np.zeros((d+1,), dtype=np.int32)
     v_bar[:d] = v
     return v_bar
 
@@ -48,7 +112,7 @@ def _expand_vec(v: NDArray) -> NDArray:
 @cache
 def _get_u(n: int) -> NDArray:
     u = np.zeros((2*n, 2*n))
-    u[:n, n:2*n] = np.identity(n, dtype=ITYPE)
+    u[:n, n:2*n] = np.identity(n, dtype=np.int32)
     return u
 
 
@@ -66,20 +130,20 @@ def _get_u_bar(n: int) -> NDArray:
 class LinSolver:
     @staticmethod
     def _get_row_adder(control: int, target: int, N: int):
-        q = np.identity(N, dtype=ITYPE)
+        q = np.identity(N, dtype=np.int32)
         q[target, control] = 1
         return q
 
     @staticmethod
     def _get_row_swapper(i: int, j: int, N: int):
-        q = np.identity(N, dtype=ITYPE)
+        q = np.identity(N, dtype=np.int32)
         q[i, i] = q[j, j] = 0
         q[i, j] = q[j, i] = 1
         return q
 
     def __init__(self, A: NDArray):
         self.N, self.M = np.shape(A)
-        self.traf = np.identity(self.N, dtype=ITYPE)
+        self.traf = np.identity(self.N, dtype=np.int32)
         self.ids = []
         A = A.copy()
         row = 0
@@ -91,7 +155,8 @@ class LinSolver:
                     i -= 1
                     break
             A = (LinSolver._get_row_swapper(i, row, self.N)@A) % 2
-            self.traf = (LinSolver._get_row_swapper(i, row, self.N)@self.traf) % 2
+            self.traf = (LinSolver._get_row_swapper(
+                i, row, self.N)@self.traf) % 2
             if A[row, c] == 1:
                 for j in range(row+1, self.N):
                     if A[j, c] == 1:
@@ -107,11 +172,12 @@ class LinSolver:
             for j in range(i):
                 if A[j, c] == 1:
                     A = (LinSolver._get_row_adder(i, j, self.N)@A) % 2
-                    self.traf = (LinSolver._get_row_adder(i, j, self.N)@self.traf) % 2
+                    self.traf = (LinSolver._get_row_adder(
+                        i, j, self.N)@self.traf) % 2
 
     def get_solution(self, b: NDArray) -> NDArray:
         q = (self.traf@b) % 2
-        s = np.zeros((self.M,), dtype=ITYPE)
+        s = np.zeros((self.M,), dtype=np.int32)
         for i, e in enumerate(self.ids):
             s[e] = q[i]
         return s

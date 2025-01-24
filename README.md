@@ -31,9 +31,9 @@ The package can be used in the following way
 ```py
 from htlogicalgates import *
 
-conn = get_conn("circular", n=4)
-qecc = get_qecc("4_2_2")
-log_gate = get_circuit("H 0", 2)
+conn = Connectivity("circular", n=4)
+qecc = StabilizerCode("4_2_2")
+log_gate = Circuit("H 0", 2)
 
 circ, status = tailor_logical_gate(qecc, conn, log_gate, 2)
 ```

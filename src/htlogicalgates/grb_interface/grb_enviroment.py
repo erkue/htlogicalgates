@@ -7,7 +7,6 @@ from gurobipy import GRB
 import numpy as np
 from numpy.typing import NDArray
 
-from .._global_vars import ITYPE
 from .grb_math_interface import *
 
 
@@ -74,7 +73,8 @@ class Enviroment:
         if c is not None:
             self.model.remove(c)
         v = self._get_var_by_id(id)
-        self.model.addConstr(int(value) == v, name=Enviroment.NAME_CONST_CONSTR + str(id))
+        self.model.addConstr(
+            int(value) == v, name=Enviroment.NAME_CONST_CONSTR + str(id))
 
     def set_many_predef_var(self, values: NDArray, ids: NDArray):
         self.model.update()
@@ -113,7 +113,7 @@ class Enviroment:
         return expr._const + sum([a*np.prod([round(i.X) for i in b]) for a, b in zip(expr._prefac, expr._nums)])
 
     def evaluate_matrix(self, mat: ExprMatrix) -> NDArray:
-        return np.array([[self.evaluate_expression(j) for j in i] for i in mat._expr], dtype=ITYPE)
+        return np.array([[self.evaluate_expression(j) for j in i] for i in mat._expr], dtype=np.int32)
 
     def has_solution(self) -> bool:
         return self.model.SolCount > 0
