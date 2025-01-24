@@ -27,7 +27,7 @@ def tailor_logical_gate(
     log_file: str = "",
     optimize: bool = True,
     gurobi: Dict = {},
-    perm: Tuple[bool, bool] = [True, True]
+    perm: Tuple[bool, bool] = [False, False]
 ) -> Tuple[Optional[Circuit], str]:
     """
     Find a circuit implementation for a Clifford gate of a given quantum
@@ -127,7 +127,7 @@ def tailor_multiple_logical_gates(
     save_every: int = 1,
     optimize: bool = True,
     gurobi: Dict = {},
-    perm: Tuple[bool, bool] = [True, True]
+    perm: Tuple[bool, bool] = [False, False]
 ) -> dict:
     """
     Find a circuit implementations for multiple Clifford gates of a given quantum
