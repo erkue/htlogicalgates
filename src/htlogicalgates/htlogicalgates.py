@@ -14,7 +14,7 @@ from .symplectic_rep.random_symplectic import symplectic_t
 from .symplectic_rep.helper import LinSolver
 from .resources.resources import load_qecc, load_connectivity
 from .connectivity import Connectivity
-from .stabilizercodes import StabilizerCode
+from .stabilizercode import StabilizerCode
 
 
 def tailor_logical_gate(
@@ -25,7 +25,9 @@ def tailor_logical_gate(
     time_limit: float = -1,
     log_to_console: bool = False,
     log_file: str = "",
-    **kwargs
+    optimize: bool = True,
+    gurobi: Dict = {},
+    perm: Tuple[bool, bool] = [True, True]
 ) -> Tuple[Optional[Circuit], str]:
     """
     Find a circuit implementation for a Clifford gate of a given quantum
@@ -39,19 +41,26 @@ def tailor_logical_gate(
         Quantum error-correcting code for which a logical circuit should be tailored.
     * `connectivity: Connectivity` \\
         Connectivity to tailor circuit to. 
-    * `logical_gate : Union[Circuit, int]` \\
+    * `logical_gate: Union[Circuit, int]` \\
         Representation of the logical gate in form of a circuit or integer.
-    * `num_cz_layers : int` \\
+    * `num_cz_layers: int` \\
         Number of controlled-Z gate layers of the ansatz with which the circuit should
         be compiled.
-    * `time_limit : float, optional` \\
+    * `time_limit: float, optional` \\
         Time in seconds until the programm aborts regardless of whether or not a circuit
         implementation has been found A value of -1 removes the time limit, by default -1.
-    * `log_to_console : bool, optional` \\
+    * `log_to_console: bool, optional` \\
         Whether or not Gurobi should log its progress to the console, by default False.
-    * `log_file : str, optional` \\
+    * `log_file: str, optional` \\
         File path of the log created by Gurobi. An emptry string removes the log-file, 
         by default "".
+    * `optimize: bool, optional` \\
+        Collapse single-qubit Clifford gates after compilation, by default True.
+    * `gurobi: Dict, optional` \\
+        Arguments to pass to the gurobi optimizer, by default {}.
+    * `perm: Tuple[bool, bool]` \\
+       If true, add a permutation layer to the start (index 0) or end (index 1) to the circuit,
+        by default [False, False].
 
     Returns
     -------
@@ -74,14 +83,15 @@ def tailor_logical_gate(
         raise TypeError("Expected a `Circuit` object for `logical_gate`")
     if isinstance(logical_gate, Circuit):
         logical_gate = logical_gate.to_clifford()
-        add_phases = np.roll(logical_gate.phase, len(qecc[0])-len(qecc[:, 0])//2)
+        add_phases = np.roll(logical_gate.phase,
+                             len(qecc[0])-len(qecc[:, 0])//2)
         logical_gate = logical_gate.symplectic_matrix
     else:
         add_phases = None
     if isinstance(logical_gate, int):
         logical_gate = symplectic_t(logical_gate, len(qecc[:, 0])//2)
     gf = GateFinder(num_cz_layers, connectivity.matrix, qecc, log_to_console,
-                    log_file, kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
+                    log_file, gurobi, perm)
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_logical_gate(logical_gate)
@@ -93,12 +103,12 @@ def tailor_logical_gate(
             ps = Circuit.from_paulis(
                 sum([qecc[:, i] for i in np.nonzero(add_phases)]))
             c = ps + gf.get_circuit_implementation()
-            if kwargs.get("optimize", True):
+            if optimize:
                 c.shallow_optimize()
             return c, gf.get_status()
         else:
             c = gf.get_circuit_implementation()
-            if kwargs.get("optimize", True):
+            if optimize:
                 c.shallow_optimize()
             return c, gf.get_status()
     else:
@@ -115,7 +125,9 @@ def tailor_multiple_logical_gates(
     log_file: str = "",
     progress_bar: bool = False,
     save_every: int = 1,
-    **kwargs
+    optimize: bool = True,
+    gurobi: Dict = {},
+    perm: Tuple[bool, bool] = [True, True]
 ) -> dict:
     """
     Find a circuit implementations for multiple Clifford gates of a given quantum
@@ -145,12 +157,13 @@ def tailor_multiple_logical_gates(
     * `log_file: str, optional` \\
         File path of the log created by Gurobi. An emptry string removes the log-file. 
         Defaults to "".
-    * `gurobi: Dict[Any, Any], optional` \\
-        Additional arguments for the Gurobi solver.
     * `optimize: bool, optional` \\
-        Perform a slight optimization of single-qubit gates. Defaults to True.
-    * `perm: Tuple[bool, bool], optional` \\
-        Defaults to [False, False] 
+        Collapse single-qubit Clifford gates after compilation, by default True.
+    * `gurobi: Dict, optional` \\
+        Arguments to pass to the gurobi optimizer, by default {}.
+    * `perm: Tuple[bool, bool]` \\
+       If true, add a permutation layer to the start (index 0) or end (index 1) to the circuit,
+        by default [False, False].
 
     Returns
     -------
@@ -166,12 +179,14 @@ def tailor_multiple_logical_gates(
             from tqdm import tqdm
             def f(x): return tqdm(x, smoothing=0)
         except ImportError:
-            print("WARNING: Package 'tqdm' is not installed. Continuing without progress bar.")
+            print(
+                "WARNING: Package 'tqdm' is not installed. Continuing without progress bar.")
+
             def f(x): return x
     else:
         def f(x): return x
-    gf = GateFinder(num_cz_layers, connectivity, qecc, False, log_file,
-                    kwargs.get("gurobi", {}), kwargs.get("perm", [False, False]))
+    gf = GateFinder(num_cz_layers, connectivity, qecc,
+                    False, log_file, gurobi, perm)
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
     gf.set_target_function()
@@ -192,7 +207,7 @@ def tailor_multiple_logical_gates(
         gf.find_gate()
         if gf.has_solution():
             c = gf.get_circuit_implementation()
-            if kwargs.get("optimize", True):
+            if optimize:
                 c.shallow_optimize()
             stor["Gates"][i] = {"Circuit": c.__str__(),
                                 "Status": gf.get_status(),
@@ -233,8 +248,10 @@ class GateFinder:
         self.env = Enviroment(log_to_console, log_file, gurobi)
         self.SCLs = [create_SCL(self.n, self.env)] + \
             [create_cons_SCL(self.n, self.env) for _ in range(self.NUM_CZL)]
-        self.CZLs = [create_CZL(self.CON, self.env) for _ in range(self.NUM_CZL)]
-        self.LOGICAL, self.LOG_IDS = self.env.create_predef_bin_matrix(2*self.k, 2*self.k)
+        self.CZLs = [create_CZL(self.CON, self.env)
+                     for _ in range(self.NUM_CZL)]
+        self.LOGICAL, self.LOG_IDS = self.env.create_predef_bin_matrix(
+            2*self.k, 2*self.k)
         self.FREEDOM = create_reduced_freedom_matrix(self.n, self.k, self.env)
         self.Perms = [None, None]
         self.ANSATZ = self.SCLs[0]
@@ -297,11 +314,13 @@ class GateFinder:
         for c in cliffs[1:]:
             tot_cliff = c@tot_cliff
         if self.Perms[0] != None:
-            self.Perms[0] = Clifford.from_matrix(self.env.evaluate_matrix(self.Perms[0]))
+            self.Perms[0] = Clifford.from_matrix(
+                self.env.evaluate_matrix(self.Perms[0]))
             tot_cliff = tot_cliff@self.Perms[0]
             circs.insert(0, Circuit.from_permutation(self.Perms[0]))
         if self.Perms[1] != None:
-            self.Perms[1] = Clifford.from_matrix(self.env.evaluate_matrix(self.Perms[1]))
+            self.Perms[1] = Clifford.from_matrix(
+                self.env.evaluate_matrix(self.Perms[1]))
             tot_cliff = self.Perms[1]@tot_cliff
             circs.append(Circuit.from_permutation(self.Perms[1]))
 

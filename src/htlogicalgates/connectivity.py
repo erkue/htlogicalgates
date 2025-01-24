@@ -2,13 +2,12 @@ from typing import Tuple, List, Optional, Union
 import numpy as np
 from numpy.typing import NDArray
 
-from .resources.resources import load_connectivity, available_connectivities
-from ._global_vars import ITYPE
+from .resources.resources import load_connectivity
 
 
 class Connectivity:
-    def __init__(self, inp, n : Optional[int] = None):
-        if isinstance(inp, str): self._mat = get_con_mat_from_name(inp, n)
+    def __init__(self, inp, num_qubits : Optional[int] = None):
+        if isinstance(inp, str): self._mat = get_con_mat_from_name(inp, num_qubits)
         elif isinstance(inp, list): self._mat = get_con_mat_from_list(inp)
         elif isinstance(inp, np.ndarray): self._mat = inp
         else: raise TypeError(f"Input of type '{str(type(inp))}' invalid!")
