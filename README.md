@@ -29,13 +29,13 @@ Alternatively, you can clone this repository and include it in your project.
 The package can be used in the following way
 
 ```py
-from htlogicalgates import *
+import htlogicalgates as htlg
 
-conn = Connectivity("circular", n=4)
-qecc = StabilizerCode("4_2_2")
-log_gate = Circuit("H 0", 2)
+conn = htlg.Connectivity("circular", n=4)
+stab_code = htlg.StabilizerCode("4_2_2")
+log_gate = htlg.Circuit("H 0", 2)
 
-circ, status = tailor_logical_gate(qecc, conn, log_gate, 2)
+circ, status = tailor_logical_gate(stab_code, conn, log_gate, 2)
 ```
 
 Here, we construct a logical gate for the $⟦4,2,2⟧$-code, as indicated by the argument `"4_2_2"`. We use a `"circular"`-connectivity and search a circuit implementation for `"H 0"`, the Hadamard gate on logical qubit 0. The ansatz consists of `2` controlled-Z gate layers.

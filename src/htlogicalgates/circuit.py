@@ -1,10 +1,11 @@
 from __future__ import annotations
 from enum import Enum
-from typing import Tuple, List, Optional, Union
+from typing import Tuple, List, Optional, Union, overload
 import numpy as np
 from numpy.typing import NDArray
 
 from .symplectic_rep.clifford_gate import Clifford
+from ._utility import _argument_assignment
 
 
 class MissingOptionalLibraryError(Exception):
@@ -19,8 +20,8 @@ class Operation(Enum):
     S = "S"
     SDG = "SDG"
     H = "H"
-    R = "C_ZYX"  # R = S H, X<-Y<-Z<-X
-    R_DAG = "C_XYZ"  # R_DAG = H S_DAG, X->Y->Z->X
+    C_ZYX = "C_ZYX"  # S H, X<-Y<-Z<-X
+    C_XYZ = "C_XYZ"  # H S_DAG, X->Y->Z->X
     SXDG = "SQRT_X_DAG"  # SQRT_X_DAG = H S_DAG H
     SWAP = "SWAP"
     BARRIER = ""
@@ -71,13 +72,13 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = m[qubits[0]+n, qubits[0]+n] = 0
         return Clifford.from_matrix(m)
-    if op == Operation.R:
+    if op == Operation.C_ZYX:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = 0
         return Clifford.from_matrix(m)
-    if op == Operation.R_DAG:
+    if op == Operation.C_XYZ:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
@@ -107,10 +108,41 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
 
 
 class Circuit:
+    @overload
+    def __init__(self, num_qubits: int): ...
+    @overload
+    def __init__(self, init_string: str): ...
+    @overload
+    def __init__(self, init_string: str, num_qubits: str): ...
 
-    def __init__(self, num_qubits: int):
-        self._num_qubits = num_qubits
-        self._gates = []
+    def __init__(self, *args, **kwargs):
+        options = [{"num_qubits": int},
+                   {"init_string": str},
+                   {"init_string": str, "num_qubits": int}]
+        i, a = _argument_assignment(
+            options, "Connectivity()", *args, **kwargs)
+        if i == 0:
+            self._num_qubits = a["num_qubits"]
+            self._gates: List[Gate] = []
+        elif i == 1 or i == 2:
+            self._gates: List[Gate] = []
+            m = 0
+            try:
+                for j, l in enumerate(a["init_string"].splitlines()):
+                    parts = l.strip().split()
+                    self._gates.append((Operation(parts[0].upper()), [
+                        int(i) for i in parts[1:]]))
+                    m = max(max(self._gates[-1][1])+1, m)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid instruction in line {str(j)}: '{l}'")
+            if i == 2:
+                self._num_qubits = a["num_qubits"]
+                if m > a["num_qubits"]:
+                    raise ValueError(
+                        f"Circuit is defined on at least '{m}' qubits but only '{a['num_qubits']}' were given")
+            else:
+                self._num_qubits = m
 
     def h(self, qubit: int):
         self.append((Operation.H, [qubit]))
@@ -123,6 +155,12 @@ class Circuit:
 
     def sxdg(self, qubit: int):
         self.append((Operation.SXDG, [qubit]))
+
+    def c_xyz(self, qubit: int):
+        self.append((Operation.C_XYZ, [qubit]))
+
+    def c_zyx(self, qubit: int):
+        self.append((Operation.C_ZYX, [qubit]))
 
     def cx(self, control: int, target: int):
         self.append((Operation.CX, [control, target]))
@@ -186,13 +224,16 @@ class Circuit:
         for op, qubits in self._gates:
             circuit.append((op, [map.get(i, i) for i in qubits]))
         return circuit
-    
+
     def two_qubit_gate_count(self) -> int:
         i = 0
         for op, qubits in self._gates:
             if len(qubits) == 2:
                 i += 1
         return i
+    
+    def gate_count(self) -> int:
+        return len(self._gates)
 
     def append(self, gate: Union[Gate, List[Gate]]):
         if isinstance(gate, list):
@@ -233,10 +274,10 @@ class Circuit:
         for op, qubits in self._gates:
             if op in gates:
                 gates[op](circuit, *qubits)
-            elif op == Operation.R_DAG:
+            elif op == Operation.C_XYZ:
                 circuit.sdg(*qubits)
                 circuit.h(*qubits)
-            elif op == Operation.R:
+            elif op == Operation.C_ZYX:
                 circuit.h(*qubits)
                 circuit.s(*qubits)
             elif op == Operation.BARRIER:
@@ -246,7 +287,8 @@ class Circuit:
         return circuit
 
     def to_clifford(self) -> Clifford:
-        c = Clifford.from_matrix(np.identity(2*self.num_qubits, dtype=np.int32))
+        c = Clifford.from_matrix(np.identity(
+            2*self.num_qubits, dtype=np.int32))
         for gate, ts in reversed(self._gates):
             c = c@gate_to_clifford(gate, ts, self.num_qubits)
         return c
@@ -283,9 +325,9 @@ class Circuit:
             elif m == (0, 1, 1, 0):
                 circ.append((Operation.H, [i]))
             elif m == (1, 1, 1, 0):
-                circ.append((Operation.R_DAG, [i]))
+                circ.append((Operation.C_XYZ, [i]))
             elif m == (0, 1, 1, 1):
-                circ.append((Operation.R, [i]))
+                circ.append((Operation.C_ZYX, [i]))
             else:
                 raise ValueError(
                     f"Gate with signature {str(m)} at qubit {str(i)} is not Clifford")
@@ -315,29 +357,6 @@ class Circuit:
             if paulis[i + o2] == 1:
                 circ.append((Operation.X, [i]))
         return circ
-
-    @staticmethod
-    def from_string(spec: str, num_qubits: int = -1) -> Circuit:
-        c: List[Gate] = []
-        m = 0
-        try:
-            for j, l in enumerate(spec.splitlines()):
-                parts = l.strip().split()
-                c.append((Operation(parts[0].upper()), [int(i) for i in parts[1:]]))
-                m = max(max(c[-1][1])+1, m)
-        except ValueError:
-            raise ValueError(f"Invalid instruction in line {str(j)}: '{l}'")
-        if num_qubits == -1:
-            circuit = Circuit(m)
-            circuit.append(c)
-            return circuit
-        else:
-            if m > num_qubits:
-                raise ValueError(
-                    f"Circuit is defined on at least {m} qubits but only {num_qubits} were given")
-            circuit = Circuit(num_qubits)
-            circuit.append(c)
-            return circuit
 
     @staticmethod
     def decompose_clifford(clifford: Clifford) -> Circuit:

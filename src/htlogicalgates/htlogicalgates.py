@@ -12,13 +12,13 @@ from .grb_interface.grb_math_interface import *
 from .symplectic_rep import *
 from .symplectic_rep.random_symplectic import symplectic_t
 from .symplectic_rep.helper import LinSolver
-from .resources.resources import load_qecc, load_connectivity
+from .resources.resources import load_stabilizercode, load_connectivity
 from .connectivity import Connectivity
 from .stabilizercode import StabilizerCode
 
 
 def tailor_logical_gate(
-    qecc: StabilizerCode,
+    stab_code: StabilizerCode,
     connectivity: Connectivity,
     logical_gate: Union[Circuit, int],
     num_cz_layers: int,
@@ -37,8 +37,8 @@ def tailor_logical_gate(
 
     Parameters
     ----------
-    * `qecc: QECC` \\
-        Quantum error-correcting code for which a logical circuit should be tailored.
+    * `stab_code: StabilizerCode` \\
+        Stabilizer code for which a logical circuit should be tailored.
     * `connectivity: Connectivity` \\
         Connectivity to tailor circuit to. 
     * `logical_gate: Union[Circuit, int]` \\
@@ -74,9 +74,9 @@ def tailor_logical_gate(
         >>> circ = find_one_logical_gate("4_2_2", "circular", "H 0", 2, -1, True)
 
     """
-    if not isinstance(qecc, StabilizerCode):
+    if not isinstance(stab_code, StabilizerCode):
         raise TypeError("Create qecc object via function 'get_qecc'!")
-    qecc = qecc.get_e_matrix()
+    stab_code = stab_code.get_e_matrix()
     if not isinstance(connectivity, Connectivity):
         raise TypeError("Create connectivity object via function 'get_conn'!")
     if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int):
@@ -84,13 +84,13 @@ def tailor_logical_gate(
     if isinstance(logical_gate, Circuit):
         logical_gate = logical_gate.to_clifford()
         add_phases = np.roll(logical_gate.phase,
-                             len(qecc[0])-len(qecc[:, 0])//2)
+                             len(stab_code[0])-len(stab_code[:, 0])//2)
         logical_gate = logical_gate.symplectic_matrix
     else:
         add_phases = None
     if isinstance(logical_gate, int):
-        logical_gate = symplectic_t(logical_gate, len(qecc[:, 0])//2)
-    gf = GateFinder(num_cz_layers, connectivity.matrix, qecc, log_to_console,
+        logical_gate = symplectic_t(logical_gate, len(stab_code[:, 0])//2)
+    gf = GateFinder(num_cz_layers, connectivity.matrix, stab_code, log_to_console,
                     log_file, gurobi, perm)
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
@@ -101,7 +101,7 @@ def tailor_logical_gate(
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
             print(add_phases)
             ps = Circuit.from_paulis(
-                sum([qecc[:, i] for i in np.nonzero(add_phases)]))
+                sum([stab_code[:, i] for i in np.nonzero(add_phases)]))
             c = ps + gf.get_circuit_implementation()
             if optimize:
                 c.shallow_optimize()
@@ -116,7 +116,7 @@ def tailor_logical_gate(
 
 
 def tailor_multiple_logical_gates(
-    qecc: StabilizerCode,
+    stab_code: StabilizerCode,
     connectivity: Connectivity,
     logical_gates: Iterable[int],
     num_cz_layers: int,
@@ -137,9 +137,8 @@ def tailor_multiple_logical_gates(
 
     Parameters
     ----------
-    * `qecc: Union[str, NDArray]` \\
-        Name of code or numpy array of shape `(2n,n+k)` consisting logical Pauli
-          operators and stabilizers of a code. 
+    * `stab_code: StabilizerCode` \\
+        Stabilizer code for which a logical circuit should be tailored.
     * `connectivity: Union[str, NDArray]` \\
         Name of connectivity or numpy array of shape (n,n) representing the
           connectivity matrix. 
@@ -168,9 +167,9 @@ def tailor_multiple_logical_gates(
     Returns
     -------
     """
-    if not isinstance(qecc, StabilizerCode):
+    if not isinstance(stab_code, StabilizerCode):
         raise TypeError("Create qecc object via function 'get_code'!")
-    qecc = qecc.get_e_matrix()
+    stab_code = stab_code.get_e_matrix()
     if not isinstance(connectivity, Connectivity):
         raise TypeError("Create connectivity object via function 'get_conn'!")
     connectivity = connectivity.matrix
@@ -185,7 +184,7 @@ def tailor_multiple_logical_gates(
             def f(x): return x
     else:
         def f(x): return x
-    gf = GateFinder(num_cz_layers, connectivity, qecc,
+    gf = GateFinder(num_cz_layers, connectivity, stab_code,
                     False, log_file, gurobi, perm)
     if time_limit >= 0:
         gf.set_time_limit(time_limit)
@@ -193,7 +192,7 @@ def tailor_multiple_logical_gates(
     stor = {
         "Meta": {
             "Connectivity": str(connectivity),
-            "Code": str(qecc),
+            "Code": str(stab_code),
             "n": gf.n,
             "k": gf.k,
             "Number CZ layers": num_cz_layers,
