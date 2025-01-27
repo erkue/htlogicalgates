@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Any
 from numpy.typing import NDArray
 import numpy as np
 
-from .._global_vars import ENCODING_FILE, CON_FILE, ENCODING_KEY, DESCR_KEY, CON_KEY
+from .._utility import ENCODING_FILE, CON_FILE, ENCODING_KEY, DESCR_KEY, CON_KEY
 
 _automated_cons = {"linear": "Connections exist between qubits $i$ and $i+1$.",
                    "circular": "Connections exist between qubits $i$ and $(i+1)%n$.",
@@ -38,28 +38,29 @@ def read_external_json(path: str, *loc: Any) -> NDArray:
         return np.array(data, dtype=np.int32)
 
 
-def load_qecc(name: str) -> NDArray:
+def load_stabilizercode(name: str, num_qubits: Optional[int] = None) -> NDArray:
     if name in get_internal_qeccs().keys():
         return np.array(get_internal_qeccs()[name][ENCODING_KEY], dtype=np.int32).T
+    if num_qubits == None:
+        raise ValueError("Please pass a qubit count 'n'!")
     if "trivial" in name:
-        n = int(name.split()[1])
-        return np.eye(2*n, dtype=np.int32)
+        return np.eye(2*num_qubits, dtype=np.int32)
     raise ValueError(f"No code found under name '{str(name)}'.")
 
 
-def load_connectivity(name: str, n: Optional[int] = None) -> NDArray:
+def load_connectivity(name: str, num_qubits: Optional[int] = None) -> NDArray:
     if name in get_internal_connectivities().keys():
         return np.array(get_internal_connectivities()[name][CON_KEY], dtype=np.int32)
-    if n == None:
-        raise ValueError("Please pass a qubit count 'n'!")
+    if num_qubits == None:
+        raise ValueError("Please pass a qubit count 'n'")
     elif name in _automated_cons.keys():
         if name in ["all-to-all", "all"]:
-            return np.full((n, n), 1, dtype=np.int32) - np.identity(n, dtype=np.int32)
+            return np.full((num_qubits, num_qubits), 1, dtype=np.int32) - np.identity(num_qubits, dtype=np.int32)
         if name in ["circular", "circle", "circ"]:
-            return np.roll(np.identity(n, dtype=np.int32), shift=1, axis=0) +\
-                np.roll(np.identity(n, dtype=np.int32), shift=-1, axis=0)
+            return np.roll(np.identity(num_qubits, dtype=np.int32), shift=1, axis=0) +\
+                np.roll(np.identity(num_qubits, dtype=np.int32), shift=-1, axis=0)
         if name in ["linear", "line"]:
-            return np.eye(n, n, 1, dtype=np.int32) + np.eye(n, n, -1, dtype=np.int32)
+            return np.eye(num_qubits, num_qubits, 1, dtype=np.int32) + np.eye(num_qubits, num_qubits, -1, dtype=np.int32)
     raise ValueError(f"No connectivity found under name '{str(name)}'.")
 
 

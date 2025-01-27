@@ -1,19 +1,32 @@
-from typing import Tuple, List, Optional, Union
+from typing import Tuple, List, Optional, Union, overload
 import numpy as np
 from numpy.typing import NDArray
 
 from .resources.resources import load_connectivity
+from ._utility import _argument_assignment
 
 
 class Connectivity:
-    def __init__(self, inp, num_qubits : Optional[int] = None):
-        if isinstance(inp, str): self._mat = get_con_mat_from_name(inp, num_qubits)
-        elif isinstance(inp, list): self._mat = get_con_mat_from_list(inp)
-        elif isinstance(inp, np.ndarray): self._mat = inp
-        else: raise TypeError(f"Input of type '{str(type(inp))}' invalid!")
-        if np.shape(self._mat)[0] != np.shape(self._mat)[1]:
-            raise ValueError("Connectivity matrix must be a 2d square matrix!")
-        self._n = len(self._mat)
+    @overload
+    def __init__(self, name: str): ...
+    @overload
+    def __init__(self, name: str, num_qubits: int): ...
+    @overload
+    def __init__(self, matrix: NDArray): ...
+
+    def __init__(self, *args, **kwargs):
+        options = [{"name": str},
+                   {"name": str, "num_qubits": int},
+                   {"matrix": np.ndarray}]
+        i, a = _argument_assignment(
+            options, "Connectivity()", *args, **kwargs)
+        if i == 0:
+            self._mat == load_connectivity(a["name"], None)
+        elif i == 1:
+            self._mat == load_connectivity(a["name"], a["num_qubits"])
+        elif i == 2:
+            self._mat = a["matrix"]
+        self._n = np.shape(self._mat)[0]
 
     @property
     def num_qubits(self) -> int:
@@ -26,8 +39,6 @@ class Connectivity:
 
 Conn = Connectivity
 
-def get_con_mat_from_name(s: str, n: Optional[int] = None) -> NDArray:
-    return load_connectivity(s, n)
 
 def get_con_mat_from_list(m: List[List[int]]) -> NDArray:
     return np.array(m, dtype=np.int32)
