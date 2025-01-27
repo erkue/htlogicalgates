@@ -20,8 +20,8 @@ class Operation(Enum):
     S = "S"
     SDG = "SDG"
     H = "H"
-    R = "C_ZYX"  # R = S H, X<-Y<-Z<-X
-    R_DAG = "C_XYZ"  # R_DAG = H S_DAG, X->Y->Z->X
+    C_ZYX = "C_ZYX"  # S H, X<-Y<-Z<-X
+    C_XYZ = "C_XYZ"  # H S_DAG, X->Y->Z->X
     SXDG = "SQRT_X_DAG"  # SQRT_X_DAG = H S_DAG H
     SWAP = "SWAP"
     BARRIER = ""
@@ -72,13 +72,13 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = m[qubits[0]+n, qubits[0]+n] = 0
         return Clifford.from_matrix(m)
-    if op == Operation.R:
+    if op == Operation.C_ZYX:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = 0
         return Clifford.from_matrix(m)
-    if op == Operation.R_DAG:
+    if op == Operation.C_XYZ:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
@@ -155,6 +155,12 @@ class Circuit:
 
     def sxdg(self, qubit: int):
         self.append((Operation.SXDG, [qubit]))
+
+    def c_xyz(self, qubit: int):
+        self.append((Operation.C_XYZ, [qubit]))
+
+    def c_zyx(self, qubit: int):
+        self.append((Operation.C_ZYX, [qubit]))
 
     def cx(self, control: int, target: int):
         self.append((Operation.CX, [control, target]))
@@ -268,10 +274,10 @@ class Circuit:
         for op, qubits in self._gates:
             if op in gates:
                 gates[op](circuit, *qubits)
-            elif op == Operation.R_DAG:
+            elif op == Operation.C_XYZ:
                 circuit.sdg(*qubits)
                 circuit.h(*qubits)
-            elif op == Operation.R:
+            elif op == Operation.C_ZYX:
                 circuit.h(*qubits)
                 circuit.s(*qubits)
             elif op == Operation.BARRIER:
@@ -319,9 +325,9 @@ class Circuit:
             elif m == (0, 1, 1, 0):
                 circ.append((Operation.H, [i]))
             elif m == (1, 1, 1, 0):
-                circ.append((Operation.R_DAG, [i]))
+                circ.append((Operation.C_XYZ, [i]))
             elif m == (0, 1, 1, 1):
-                circ.append((Operation.R, [i]))
+                circ.append((Operation.C_ZYX, [i]))
             else:
                 raise ValueError(
                     f"Gate with signature {str(m)} at qubit {str(i)} is not Clifford")
