@@ -55,9 +55,11 @@ class StabilizerCode:
             self._e_mat = load_stabilizercode(a["name"], a["num_qubits"])
         elif i == 2:
             if len(a["paulis"]) != 3:
-                raise ValueError(f"StabilizerCode() argument got invalid value '{str(a['paulis'])}'")
+                raise ValueError(f"StabilizerCode() argument got invalid value '{
+                                 str(a['paulis'])}'")
             self._e_mat = _get_qecc_e_from_paulis(
                 a["paulis"][0], a["paulis"][1], a["paulis"][2], False)
+            self._check_validity()
         elif i == 3:
             self._e_mat = _get_qecc_e_from_paulis(
                 a["paulis"][0], a["paulis"][1], a["paulis"][2], a["skip_tests"])
@@ -65,12 +67,11 @@ class StabilizerCode:
                 self._check_validity()
         elif i == 4:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["x_logicals"][0], a["z_logicals"][1], a["stabilizers"][2], False)
-            if not a["skip_tests"]:
-                self._check_validity()
+                a["x_logicals"], a["z_logicals"], a["stabilizers"], False)
+            self._check_validity()
         elif i == 5:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["x_logicals"][0], a["z_logicals"][1], a["stabilizers"][2], a["skip_tests"])
+                a["x_logicals"], a["z_logicals"], a["stabilizers"], a["skip_tests"])
             if not a["skip_tests"]:
                 self._check_validity()
         self._distance = -1
@@ -87,57 +88,64 @@ class StabilizerCode:
             raise ValueError("Logical Pauli-Z do not commute with themselves")
         if np.count_nonzero((e_xz[:, self.k:].T@e_zx[:, self.k:]) % 2) != 0:
             raise ValueError("Logical Pauli-Z do not commute with stabilizers")
+        if np.count_nonzero((e_xz[:, :self.k].T@e_zx[:, :self.k]) % 2) != 0:
+            raise ValueError("Logical Pauli-X do not commute with themselves")
+        if np.count_nonzero((np.delete(e_xz, range(self.k, 2*self.k), axis=1).T@np.delete(e_zx, range(self.k, 2*self.k), axis=1)) % 2) != 0:
+            raise ValueError("Logical Pauli-X do not commute with themselves")
+        if np.count_nonzero((e_xz[:, self.k:2*self.k].T@e_zx[:, :self.k]) % 2 - np.eye(self.k, dtype=np.int32)) != 0:
+            raise ValueError(
+                "Logical Pauli operators do not (anti-)commute correctly")
 
     def get_e_matrix(self) -> NDArray:
         return self._e_mat
 
-    @property
+    @ property
     def n(self) -> int:
         return np.shape(self._e_mat)[0]//2
 
-    @property
+    @ property
     def k(self) -> int:
         return np.shape(self._e_mat)[1] - self.n
 
-    @property
+    @ property
     def d(self) -> int:
         if self._distance == -1:
             self._compute_distance()
         return self._distance
 
-    @property
+    @ property
     def nkd(self) -> Tuple[int, int, int]:
         return (self.n, self.k, self.d)
 
     def _compute_distance(self):
-        sle_a = np.zeros(self.n + 1, dtype=np.int32)
+        sle_a=np.zeros(self.n + 1, dtype=np.int32)
         for stabs in chain.from_iterable(combinations(self.get_e_matrix()[:, 2*self.k:].T, r)
                                          for r in range(self.n - self.k + 1)):
             if len(stabs) == 0:
                 sle_a[0] += 1
                 continue
-            stab = np.sum(stabs, axis=0) % 2
+            stab=np.sum(stabs, axis=0) % 2
             sle_a[np.count_nonzero(stab[:self.n] + stab[self.n])] += 1
-        sle_b = MacWilliams(self.n)@sle_a
-        self._distance = int(
+        sle_b=MacWilliams(self.n)@sle_a
+        self._distance=int(
             np.min(np.nonzero(np.round(sle_b*2**self.k).astype(sle_a.dtype) - sle_a)))
 
 
 def reduce_to_stabilizer_generators(stabilizers: List[str]) -> List[str]:
-    num_qubits = max([max_index_of_pauli(i) for i in stabilizers])
-    stabs = np.array([pauli_string_to_list(i, num_qubits)
+    num_qubits=max([max_index_of_pauli(i) for i in stabilizers])
+    stabs=np.array([pauli_string_to_list(i, num_qubits)
                      for i in stabilizers], dtype=np.int32)
-    rank = matrix_rank(stabs)
-    index = []
-    num = np.shape(stabs)[0]
-    i = 0
+    rank=matrix_rank(stabs)
+    index=[]
+    num=np.shape(stabs)[0]
+    i=0
     while i < num - len(index):
         if rank == matrix_rank(a := np.delete(stabs, i, axis=0)):
-            stabs = a
+            stabs=a
             index.append(i)
         else:
             i += 1
-    new_stabs = deepcopy(stabilizers)
+    new_stabs=deepcopy(stabilizers)
     for j in index:
         new_stabs.pop(j)
     return new_stabs

@@ -117,7 +117,7 @@ class Circuit:
 
     def __init__(self, *args, **kwargs):
         options = [{"num_qubits": int},
-                   {"init_string": int},
+                   {"init_string": str},
                    {"init_string": str, "num_qubits": int}]
         i, a = _argument_assignment(
             options, "Connectivity()", *args, **kwargs)
@@ -125,6 +125,8 @@ class Circuit:
             self._num_qubits = a["num_qubits"]
             self._gates: List[Gate] = []
         elif i == 1 or i == 2:
+            self._gates: List[Gate] = []
+            m = 0
             try:
                 for j, l in enumerate(a["init_string"].splitlines()):
                     parts = l.strip().split()
@@ -135,9 +137,12 @@ class Circuit:
                 raise ValueError(
                     f"Invalid instruction in line {str(j)}: '{l}'")
             if i == 2:
+                self._num_qubits = a["num_qubits"]
                 if m > a["num_qubits"]:
                     raise ValueError(
                         f"Circuit is defined on at least '{m}' qubits but only '{a['num_qubits']}' were given")
+            else:
+                self._num_qubits = m
 
     def h(self, qubit: int):
         self.append((Operation.H, [qubit]))
@@ -220,6 +225,9 @@ class Circuit:
             if len(qubits) == 2:
                 i += 1
         return i
+    
+    def gate_count(self) -> int:
+        return len(self._gates)
 
     def append(self, gate: Union[Gate, List[Gate]]):
         if isinstance(gate, list):

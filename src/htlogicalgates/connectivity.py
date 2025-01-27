@@ -21,9 +21,9 @@ class Connectivity:
         i, a = _argument_assignment(
             options, "Connectivity()", *args, **kwargs)
         if i == 0:
-            self._mat == load_connectivity(a["name"], None)
+            self._mat = load_connectivity(a["name"], None)
         elif i == 1:
-            self._mat == load_connectivity(a["name"], a["num_qubits"])
+            self._mat = load_connectivity(a["name"], a["num_qubits"])
         elif i == 2:
             self._mat = a["matrix"]
         self._n = np.shape(self._mat)[0]
@@ -35,9 +35,6 @@ class Connectivity:
     @property
     def matrix(self) -> NDArray:
         return self._mat
-
-
-Conn = Connectivity
 
 
 def get_con_mat_from_list(m: List[List[int]]) -> NDArray:

@@ -26,10 +26,9 @@ def _argument_assignment(options, name, *args, **kwargs):
                 raise TypeError(
                     f"{name} got multiple values for argument '{key}'")
             if not isinstance(val, option[key]):
-                raise TypeError(f"{name} argument '{key}' is of type '{ \
-                                str(type(val))}', must be of type '{str(option[key])}'")
+                raise TypeError(f"{name} argument '{key}' is of type '{str(type(val))}', must be of type '{str(option[key])}'")
             res[key] = val
-        if not e in res.values():
+        if not any([i is e for i in res.values()]):
             return res
         return None
 
