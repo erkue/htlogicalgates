@@ -1,18 +1,22 @@
 from __future__ import annotations
 from enum import Enum
-from typing import Tuple, List, Optional, Union, overload
+from typing import Tuple, List, Union, overload
 import numpy as np
 from numpy.typing import NDArray
 
+try:
+    from qiskit import QuantumCircuit as qiskitQuantumCircuit
+except ImportError:
+    _has_qiskit = False
+finally:
+    _has_qiskit = True
+
 from .symplectic_rep.clifford_gate import Clifford
-from ._utility import _argument_assignment
-
-
-class MissingOptionalLibraryError(Exception):
-    pass
-
+from ._utility import _argument_assignment, MissingOptionalLibraryError
 
 # Identical to stim circuit language
+
+
 class Operation(Enum):
     CZ = "CZ"
     CX = "CX"
@@ -231,7 +235,7 @@ class Circuit:
             if len(qubits) == 2:
                 i += 1
         return i
-    
+
     def gate_count(self) -> int:
         return len(self._gates)
 
@@ -254,14 +258,10 @@ class Circuit:
         return s
 
     def to_qiskit(self):
-        try:
-            import qiskit
-        except ImportError:
+        if not _has_qiskit:
             raise MissingOptionalLibraryError(
-                "In order to use the function Circuit.to_qiskit(), Qiskit needs to be installed")
-
-        QC = qiskit.QuantumCircuit
-
+                "to_qiskit() requires 'qiskit' to be installed")
+        QC = qiskitQuantumCircuit
         gates = {
             Operation.X: QC.x, Operation.Y: QC.y, Operation.Z: QC.z, Operation.H: QC.h,
             Operation.SDG: QC.sdg, Operation.S: QC.s, Operation.CX: QC.cx,

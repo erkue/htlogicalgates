@@ -1,10 +1,15 @@
 from typing import Union, Optional, Iterable, Dict, Any
 from datetime import datetime
 import json
-import sys
-
 import numpy as np
 from numpy.typing import NDArray
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    _has_tqdm = False
+finally:
+    _has_tqdm = True
 
 from .grb_interface.grb_enviroment import Enviroment
 from .grb_interface.grb_gates import *
@@ -15,6 +20,7 @@ from .symplectic_rep.helper import LinSolver
 from .resources.resources import load_stabilizercode, load_connectivity
 from .connectivity import Connectivity
 from .stabilizercode import StabilizerCode
+from ._utility import MissingOptionalLibraryError
 
 
 def tailor_logical_gate(
@@ -149,20 +155,22 @@ def tailor_multiple_logical_gates(
           should be compiled.
     * `time_limit: float, optional` \\
         Time in seconds until the programm aborts regardless of whether or not a
-        circuit implementation has been found A value of -1 removes the time limit. 
-        Defaults to -1.
+        circuit implementation has been found A value of -1 removes the time limit,
+        by default -1.
     * `log_to_console: bool, optional` \\
-        Whether or not Gurobi should log its progress to the console. Defaults to False.
+        Whether or not Gurobi should log its progress to the console, by default False.
     * `log_file: str, optional` \\
-        File path of the log created by Gurobi. An emptry string removes the log-file. 
-        Defaults to "".
+        File path of the log created by Gurobi. An emptry string removes the log-file,
+        by default "".
+    * `progress_bar: bool, optional` \\
+        Whether or not to show a progress bar. Requires tqdm to be installed, by default False.
     * `optimize: bool, optional` \\
         Collapse single-qubit Clifford gates after compilation, by default True.
     * `gurobi: Dict, optional` \\
         Arguments to pass to the gurobi optimizer, by default {}.
     * `perm: Tuple[bool, bool]` \\
        If true, add a permutation layer to the start (index 0) or end (index 1) to the circuit,
-        by default [False, False].
+       by default [False, False].
 
     Returns
     -------
@@ -174,14 +182,11 @@ def tailor_multiple_logical_gates(
         raise TypeError("Create connectivity object via function 'get_conn'!")
     connectivity = connectivity.matrix
     if progress_bar:
-        try:
-            from tqdm import tqdm
-            def f(x): return tqdm(x, smoothing=0)
-        except ImportError:
-            print(
-                "WARNING: Package 'tqdm' is not installed. Continuing without progress bar.")
+        if not _has_tqdm:
+            raise MissingOptionalLibraryError(
+                "progress_bar requires 'qiskit' to be installed")
 
-            def f(x): return x
+        def f(x): return tqdm(x, smoothing=0)
     else:
         def f(x): return x
     gf = GateFinder(num_cz_layers, connectivity, stab_code,

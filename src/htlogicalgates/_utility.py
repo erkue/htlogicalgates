@@ -5,6 +5,10 @@ CON_KEY = "con"
 DESCR_KEY = "desc"
 
 
+class MissingOptionalLibraryError(Exception):
+    pass
+
+
 def _argument_assignment(options, name, *args, **kwargs):
     class Empty:
         ...
