@@ -1,1 +1,1 @@
-from .resources import load_stabilizercode, available_qeccs, load_connectivity, available_connectivities
+from .resources import load_stabilizercode, available_stabilizercodes, load_connectivity, available_connectivities

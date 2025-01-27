@@ -11,7 +11,7 @@ _automated_cons = {"linear": "Connections exist between qubits $i$ and $i+1$.",
                    "circular": "Connections exist between qubits $i$ and $(i+1)%n$.",
                    "all": "Connections exist between all qubits."}
 
-_automated_qeccs = {r"trivial {n}": "The trivial [[n,n,1]] code."}
+_automated_qeccs = {r"trivial": "The trivial [[n,n,1]] code."}
 
 
 def get_json_resource(name: str):
@@ -64,7 +64,7 @@ def load_connectivity(name: str, num_qubits: Optional[int] = None) -> NDArray:
     raise ValueError(f"No connectivity found under name '{str(name)}'.")
 
 
-def available_qeccs() -> Dict:
+def available_stabilizercodes() -> Dict:
     return {key: val[DESCR_KEY] for key, val in get_internal_qeccs().items()} | _automated_qeccs
 
 
