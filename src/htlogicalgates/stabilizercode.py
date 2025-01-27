@@ -55,8 +55,7 @@ class StabilizerCode:
             self._e_mat = load_stabilizercode(a["name"], a["num_qubits"])
         elif i == 2:
             if len(a["paulis"]) != 3:
-                raise ValueError(f"StabilizerCode() argument got invalid value '{
-                                 str(a['paulis'])}'")
+                raise ValueError(f"StabilizerCode() argument got invalid value '{str(a['paulis'])}'")
             self._e_mat = _get_qecc_e_from_paulis(
                 a["paulis"][0], a["paulis"][1], a["paulis"][2], False)
             self._check_validity()
