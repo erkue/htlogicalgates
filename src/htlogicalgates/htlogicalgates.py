@@ -35,7 +35,7 @@ def tailor_logical_gate(
     perm: Tuple[bool, bool] = (False, False)
 ) -> Tuple[Optional[Circuit], str]:
     """
-    Find a circuit implementation for a Clifford gate of a given quantum
+    Finds a circuit implementation for a Clifford gate of a given quantum
     error-correcting code tailored to a specified hardware connectivity.
 
     Parameters
@@ -43,34 +43,32 @@ def tailor_logical_gate(
     stab_code: StabilizerCode
         Stabilizer code for which a logical circuit should be tailored.
     connectivity: Connectivity
-        Connectivity to tailor circuit to. 
+        Connectivity to tailor the circuit to. 
     logical_gate: Union[Circuit, int]
         Representation of the logical gate in form of a circuit or integer.
     num_cz_layers: int
-        Number of controlled-Z gate layers of the ansatz with which the circuit should
+        Number of controlled-Z gate layers for the ansatz with which the circuit should
         be compiled.
     time_limit: float, optional
-        Time in seconds until the programm aborts regardless of whether or not a circuit
-        implementation has been found A value of -1 removes the time limit, by default -1.
+        Time in seconds until the program aborts regardless of whether or not a circuit
+        implementation has been found. A value of -1 removes the time limit, by default -1.
     log_to_console: bool, optional
         Whether or not Gurobi should log its progress to the console, by default False.
     log_file: str, optional
-        File path of the log created by Gurobi. An emptry string removes the log-file, 
+        File path of the log created by Gurobi. An empty string removes the log file, 
         by default "".
     optimize: bool, optional
-        Collapse single-qubit Clifford gates after compilation, by default True.
+        Whether to collapse single-qubit Clifford gates after compilation, by default True.
     gurobi: Dict, optional
-        Arguments to pass to the gurobi optimizer, by default {}.
+        Arguments to pass to the Gurobi optimizer, by default {}.
     perm: Tuple[bool, bool]
-       If true, add a permutation layer to the start (index 0) or end (index 1) to the circuit,
+       If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
         by default [False, False].
 
     Returns
     -------
     Tuple[Optional[Circuit], str]
-        A representation of the circuit in form of a member the circuit class and a string
-        containing the final status message. If a circuit has not been found, `None` is
-        returned instead of the circuit.
+        A circuit (if one has been found) and a status message. 
 
     Examples
     --------
@@ -138,9 +136,9 @@ def tailor_multiple_logical_gates(
     perm: Tuple[bool, bool] = (False, False)
 ) -> Dict:
     """
-    Find circuit implementations for multiple Clifford gates of a given quantum
+    Finds circuit implementations for multiple Clifford gates of a given quantum
     error-correcting code tailored to a specified hardware connectivity. The
-    results can be saved to a file
+    results can be saved to a file. 
 
     Parameters
     ----------
@@ -148,7 +146,7 @@ def tailor_multiple_logical_gates(
         Stabilizer code for which a logical circuit should be tailored.
     * `connectivity: Union[str, NDArray]` \\
         Name of connectivity or numpy array of shape (n,n) representing the
-          connectivity matrix. 
+        connectivity matrix. 
     * `logical_gates: Iterable[int]` \\
         Integers representing logical Clifford gates.
     * `num_cz_layers: int` \\
@@ -159,22 +157,22 @@ def tailor_multiple_logical_gates(
         information.
     * `time_limit: float, optional` \\
         Time in seconds until the programm aborts regardless of whether or not a
-        circuit implementation has been found A value of -1 removes the time limit,
+        circuit implementation has been found. A value of -1 removes the time limit,
         by default -1.
     * `log_to_console: bool, optional` \\
         Whether or not Gurobi should log its progress to the console, by default False.
     * `log_file: str, optional` \\
-        File path of the log created by Gurobi. An emptry string removes the log-file,
+        File path of the log created by Gurobi. An empty string removes the log file,
         by default "".
     * `progress_bar: bool, optional` \\
         Whether or not to show a progress bar. Requires tqdm to be installed, by default False.
     * `optimize: bool, optional` \\
         Collapse single-qubit Clifford gates after compilation, by default True.
     * `gurobi: Dict, optional` \\
-        Arguments to pass to the gurobi optimizer, by default {}.
+        Arguments to pass to the Gurobi optimizer, by default {}.
     * `perm: Tuple[bool, bool]` \\
-       If true, add a permutation layer to the start (index 0) or end (index 1) to the circuit,
-       by default [False, False].
+        If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
+        by default [False, False].
 
     Returns
     -------
@@ -340,3 +338,6 @@ class GateFinder:
         paulis = Circuit.from_paulis(
             self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
         return sum(circs, start=paulis)
+
+tailor_logical_gate()
+tailor_multiple_logical_gates(stab_code=)

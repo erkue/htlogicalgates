@@ -115,7 +115,7 @@ class Circuit:
     @overload
     def __init__(self, num_qubits: int):
         """
-        Construct an empty circuit.
+        Constructs an empty circuit.
 
         Parameters
         ----------
@@ -127,7 +127,7 @@ class Circuit:
     @overload
     def __init__(self, init_string: str):
         """
-        Construct a circuit from a string.
+        Constructs a circuit from a string.
 
         Parameters
         ----------
@@ -144,7 +144,7 @@ class Circuit:
     @overload
     def __init__(self, init_string: str, num_qubits: str):
         """
-        Construct a circuit from a string defined on a number of qubits. The number of
+        Constructs a circuit from a string defined on a number of qubits. The number of
         qubits must be large enough to contain all gates from the string.
 
         Parameters
@@ -191,7 +191,7 @@ class Circuit:
 
     def h(self, qubit: int):
         """
-        Add a Hadamard gate to the end of circuit.
+        Adds a Hadamard gate to the end of circuit.
 
         Parameters
         ----------
@@ -202,7 +202,7 @@ class Circuit:
 
     def s(self, qubit: int):
         """
-        Add a phase gate to the end of circuit.
+        Adds a phase gate to the end of circuit.
 
         Parameters
         ----------
@@ -213,7 +213,7 @@ class Circuit:
 
     def sdg(self, qubit: int):
         """
-        Add the adjoint of the phase gate to the end of circuit.
+        Adds the adjoint of the phase gate to the end of circuit.
 
         Parameters
         ----------
@@ -224,7 +224,7 @@ class Circuit:
 
     def sxdg(self, qubit: int):
         """
-        Add a sqrt(X)=(h sdg h) gate to the end of circuit.
+        Adds a sqrt(X)=(h sdg h) gate to the end of circuit.
 
         Parameters
         ----------
@@ -235,7 +235,7 @@ class Circuit:
 
     def c_xyz(self, qubit: int):
         """
-        Add a c_xyz=(h sdg) gate to the end of circuit.
+        Adds a c_xyz=(h sdg) gate to the end of circuit.
 
         Parameters
         ----------
@@ -246,7 +246,7 @@ class Circuit:
 
     def c_zyx(self, qubit: int):
         """
-        Add a c_zyx=(s h) gate to the end of circuit.
+        Adds a c_zyx=(s h) gate to the end of circuit.
 
         Parameters
         ----------
@@ -257,7 +257,7 @@ class Circuit:
 
     def x(self, qubit: int):
         """
-        Add a Pauli-X gate to the end of circuit.
+        Adds a Pauli-X gate to the end of circuit.
 
         Parameters
         ----------
@@ -268,7 +268,7 @@ class Circuit:
 
     def y(self, qubit: int):
         """
-        Add a Pauli-Y gate to the end of circuit.
+        Adds a Pauli-Y gate to the end of circuit.
 
         Parameters
         ----------
@@ -279,7 +279,7 @@ class Circuit:
 
     def z(self, qubit: int):
         """
-        Add a Pauli-Z gate to the end of circuit.
+        Adds a Pauli-Z gate to the end of circuit.
 
         Parameters
         ----------
@@ -290,7 +290,7 @@ class Circuit:
 
     def id(self, qubit: int):
         """
-        Add an identity gate to the end of circuit.
+        Adds an identity gate to the end of circuit.
 
         Parameters
         ----------
@@ -301,7 +301,7 @@ class Circuit:
 
     def cx(self, control: int, target: int):
         """
-        Add a controlled-X gate to the end of circuit.
+        Adds a controlled-X gate to the end of circuit.
 
         Parameters
         ----------
@@ -314,7 +314,7 @@ class Circuit:
 
     def cz(self, qubit1: int, qubit2):
         """
-        Add a controlled-Z gate to the end of circuit.
+        Adds a controlled-Z gate to the end of circuit.
 
         Parameters
         ----------
@@ -327,7 +327,7 @@ class Circuit:
 
     def swap(self, qubit1: int, qubit2):
         """
-        Add a swapping operation to the end of circuit.
+        Adds a swapping operation to the end of circuit.
 
         Parameters
         ----------
@@ -345,7 +345,7 @@ class Circuit:
         return circuit
 
     @property
-    def num_qubits(self):
+    def num_qubits(self) -> int:
         """
         Returns the number of qubits the Clifford is defined on.
 
@@ -359,6 +359,7 @@ class Circuit:
     def shallow_optimize(self):
         """
         Performs a small optimization of single-qubit gates of the circuit.
+        This operation is in-place. 
         """
         for i in range(self.num_qubits):
             targets = [[]]
@@ -418,8 +419,8 @@ class Circuit:
 
     def append(self, gate: Union[Gate, List[Gate]]):
         """
-        Add a gate or multiple gates to the circuit.
-        To add two circuits, use `Circuit("H 0") + Circuit("S 0")`.
+        Adds one or multiple gates to the circuit.
+        In order to compose two circuits, use `Circuit("H 0") + Circuit("S 0")`.
 
         Parameters
         ----------
@@ -433,8 +434,8 @@ class Circuit:
 
     def insert(self, index: int, gate: Gate):
         """
-        Add a gate to a specified position in the circuit.
-        To add two circuits, use `Circuit("H 0") + Circuit("S 0")`.
+        Adds a gate to a specified position in the circuit.
+        In order to compose two circuits, use `Circuit("H 0") + Circuit("S 0")`.
 
         Parameters
         ----------
@@ -456,7 +457,7 @@ class Circuit:
 
     def to_qiskit(self):
         """
-        Transform the circuit into a qiskit circuit.
+        Transforms the circuit into a qiskit circuit.
 
         Raises
 
@@ -500,7 +501,7 @@ class Circuit:
 
     def to_clifford(self) -> Clifford:
         """
-        Get the circuit as a Clifford object.
+        Returns the circuit as a Clifford object.
 
         Returns
         ----------

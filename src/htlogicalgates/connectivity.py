@@ -10,8 +10,8 @@ class Connectivity:
     @overload
     def __init__(self, name: str):
         """
-        Construct a connectivity object by its name. To query available name, use
-        `available_connectivities`.
+        Constructs a connectivity object from a known connectivity name. 
+        To query available name, call `available_connectivities()`.
 
         Parameters
         ----------
@@ -23,8 +23,8 @@ class Connectivity:
     @overload
     def __init__(self, name: str, num_qubits: int):
         """
-        Construct a connectivity object by its name and number of qubits.
-        To query available name, use `available_connectivities`.
+        Constructs a connectivity object by its name and number of qubits.
+        To query available name, call `available_connectivities()`.
 
         Parameters
         ----------
@@ -38,7 +38,7 @@ class Connectivity:
     @overload
     def __init__(self, matrix: NDArray):
         """
-        Construct a connectivity object from a matrix. Here, `matrix[i,j] = 1` if qubits `i`
+        Constructs a connectivity object from a matrix. Here, `matrix[i,j] = 1` if qubits `i`
         and `j` are connected and `matrix[i,j] = 0` otherwise.
 
         Parameters
