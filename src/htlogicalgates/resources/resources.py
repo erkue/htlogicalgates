@@ -65,8 +65,26 @@ def load_connectivity(name: str, num_qubits: Optional[int] = None) -> NDArray:
 
 
 def available_stabilizercodes() -> Dict:
+    """
+    Returns all precompiled stabilizers codes as a dictionary.
+
+    Returns
+    ----------
+    Dict
+        Dictionary of all precompiled stabilizers codes. Keys are the names of the
+        the stabilizers codes and values are explanations.
+    """
     return {key: val[DESCR_KEY] for key, val in get_internal_qeccs().items()} | _automated_qeccs
 
 
 def available_connectivities() -> Dict:
+    """
+    Returns all precompiled connectivies as a dictionary.
+
+    Returns
+    ----------
+    Dict
+        Dictionary of all precompiled connectivites. Keys are the names of the
+        the connectivities and values are explanations.
+    """
     return {key: val[DESCR_KEY] for key, val in get_internal_connectivities().items()} | _automated_cons
