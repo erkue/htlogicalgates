@@ -88,13 +88,28 @@ class StabilizerCode:
         >>> c = StabilizerCode(x_log, z_log, stab)
         """
 
+    @overload
+    def __init__(self, truncated_encoding: NDArray):
+        """
+        Construct a stabilizer code object by its truncated encoding matrix. Columns
+        0 to k-1 specifiy the logical Pauli-X operators, columns k to 2k-1 specify the
+        logical Pauli-Z operators. and columns 2k to n+k specify the stabilizers.
+
+        Parameters
+        ----------
+        truncated_encoding: NDArray
+            Truncated encoding matrix of the code.
+        """
+        pass
+
     def __init__(self, *args, **kwargs):
         options = [{"name": str},
                    {"name": str, "num_qubits": int},
                    {"paulis": Tuple},
                    {"paulis": Tuple, "skip_tests": bool},
                    {"x_logicals": List, "z_logicals": List, "stabilizers": List},
-                   {"x_logicals": List, "z_logicals": List, "stabilizers": List, "skip_tests": bool}]
+                   {"x_logicals": List, "z_logicals": List, "stabilizers": List, "skip_tests": bool},
+                   {"truncated_encoding": np.ndarray}]
         i, a = _argument_assignment(
             options, "StabilizerCode()", *args, **kwargs)
 
@@ -136,6 +151,9 @@ class StabilizerCode:
                 a["x_logicals"], a["z_logicals"], a["stabilizers"], a["skip_tests"])
             if not a["skip_tests"]:
                 self._check_validity()
+        elif i == 6:
+            self._e_mat = a["truncated_encoding"]
+            self._check_validity()
         self._distance = -1
 
     def _check_validity(self):

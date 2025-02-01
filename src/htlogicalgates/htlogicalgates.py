@@ -204,8 +204,8 @@ def tailor_multiple_logical_gates(
     gate_finder.set_target_function()
     stor = {
         "Meta": {
-            "Connectivity": str(connectivity_matrix),
-            "Code": str(stabilizer_matrix),
+            "Connectivity": repr(connectivity_matrix),
+            "Code": repr(stabilizer_matrix),
             "n": gate_finder.n,
             "k": gate_finder.k,
             "Number CZ layers": num_cz_layers,
