@@ -53,7 +53,7 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         assert (len(qubits) == 2)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[1]] = m[qubits[1]+n, qubits[0]] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.SWAP:
         assert (len(qubits) == 2)
         m = np.identity(2*n, dtype=np.int32)
@@ -61,63 +61,104 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         m[qubits[1], qubits[1]] = m[qubits[1]+n, qubits[1]+n] = 0
         m[qubits[0], qubits[1]] = m[qubits[0]+n, qubits[1]+n] = 1
         m[qubits[1], qubits[0]] = m[qubits[1]+n, qubits[0]+n] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.I or op == Operation.BARRIER:
         m = np.identity(2*n, dtype=np.int32)
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.S:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.H:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = m[qubits[0]+n, qubits[0]+n] = 0
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.C_ZYX:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = 0
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.C_XYZ:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0]+n, qubits[0]+n] = 0
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.SXDG:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0], qubits[0]+n] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.X:
         assert (len(qubits) == 1)
         p = np.zeros((2*n,), dtype=np.int32)
         p[qubits[0]+n] = 1
-        return Clifford.from_matrix_with_phase(np.identity(2*n, dtype=np.int32), p)
+        return Clifford(np.identity(2*n, dtype=np.int32), p)
     if op == Operation.Y:
         assert (len(qubits) == 1)
         p = np.zeros((2*n,), dtype=np.int32)
         p[qubits[0]+n] = p[qubits[0]] = 1
-        return Clifford.from_matrix_with_phase(np.identity(2*n, dtype=np.int32), p)
+        return Clifford(np.identity(2*n, dtype=np.int32), p)
     if op == Operation.Z:
         assert (len(qubits) == 1)
         p = np.zeros((2*n,), dtype=np.int32)
         p[qubits[0]] = 1
-        return Clifford.from_matrix_with_phase(np.identity(2*n, dtype=np.int32), p)
+        return Clifford(np.identity(2*n, dtype=np.int32), p)
     raise ValueError(f"Operation '{op.value}' not known")
 
 
 class Circuit:
     @overload
-    def __init__(self, num_qubits: int): ...
+    def __init__(self, num_qubits: int):
+        """
+        Construct an empty circuit.
+
+        Parameters
+        ----------
+        num_qubits: int
+            Number of qubits the circuit acts on.
+        """
+        pass
+
     @overload
-    def __init__(self, init_string: str): ...
+    def __init__(self, init_string: str):
+        """
+        Construct a circuit from a string.
+
+        Parameters
+        ----------
+        init_string: str
+            String containing the circuit.
+
+        Examples
+        ----------
+            >>> Circuit("H 0\\nS 1\\nCZ 0 1")
+
+        """
+        pass
+
     @overload
-    def __init__(self, init_string: str, num_qubits: str): ...
+    def __init__(self, init_string: str, num_qubits: str):
+        """
+        Construct a circuit from a string defined on a number of qubits. The number of
+        qubits must be large enough to contain all gates from the string.
+
+        Parameters
+        ----------
+        init_string: str
+            String containing the circuit.
+        num_qubits: int
+            Number of qubits the circuit acts on.
+
+        Examples
+        ----------
+            >>> Circuit("H 0\\nS 1\\nCZ 0 1", 4)
+        """
+        pass
 
     def __init__(self, *args, **kwargs):
         options = [{"num_qubits": int},
@@ -149,43 +190,153 @@ class Circuit:
                 self._num_qubits = m
 
     def h(self, qubit: int):
+        """
+        Add a Hadamard gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.H, [qubit]))
 
     def s(self, qubit: int):
+        """
+        Add a phase gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.S, [qubit]))
 
     def sdg(self, qubit: int):
+        """
+        Add the adjoint of the phase gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.SDG, [qubit]))
 
     def sxdg(self, qubit: int):
+        """
+        Add a sqrt(X)=(h sdg h) gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.SXDG, [qubit]))
 
     def c_xyz(self, qubit: int):
+        """
+        Add a c_xyz=(h sdg) gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.C_XYZ, [qubit]))
 
     def c_zyx(self, qubit: int):
+        """
+        Add a c_zyx=(s h) gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.C_ZYX, [qubit]))
 
-    def cx(self, control: int, target: int):
-        self.append((Operation.CX, [control, target]))
-
-    def cz(self, qubit1: int, qubit2):
-        self.append((Operation.CZ, [qubit1, qubit2]))
-
-    def swap(self, qubit1: int, qubit2):
-        self.append((Operation.SWAP, [qubit1, qubit2]))
-
     def x(self, qubit: int):
+        """
+        Add a Pauli-X gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.X, [qubit]))
 
     def y(self, qubit: int):
+        """
+        Add a Pauli-Y gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.Y, [qubit]))
 
     def z(self, qubit: int):
+        """
+        Add a Pauli-Z gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.Z, [qubit]))
 
     def id(self, qubit: int):
+        """
+        Add an identity gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit: int
+            Qubit the gate acts on.
+        """
         self.append((Operation.I, [qubit]))
+
+    def cx(self, control: int, target: int):
+        """
+        Add a controlled-X gate to the end of circuit.
+
+        Parameters
+        ----------
+        control: int
+            Control qubit.
+        target: int
+            Target qubit.
+        """
+        self.append((Operation.CX, [control, target]))
+
+    def cz(self, qubit1: int, qubit2):
+        """
+        Add a controlled-Z gate to the end of circuit.
+
+        Parameters
+        ----------
+        qubit1: int
+            First qubit the gate acts on.
+        qubit2: int
+            Second qubit the gate acts on.
+        """
+        self.append((Operation.CZ, [qubit1, qubit2]))
+
+    def swap(self, qubit1: int, qubit2):
+        """
+        Add a swapping operation to the end of circuit.
+
+        Parameters
+        ----------
+        qubit1: int
+            First qubit the gate acts on.
+        qubit2: int
+            Second qubit the gate acts on.
+        """
+        self.append((Operation.SWAP, [qubit1, qubit2]))
 
     def __add__(self, other: Circuit) -> Circuit:
         assert (self.num_qubits == other.num_qubits)
@@ -195,10 +346,20 @@ class Circuit:
 
     @property
     def num_qubits(self):
+        """
+        Returns the number of qubits the Clifford is defined on.
+
+        Returns
+        ----------
+        int
+            Number of qubits.
+        """
         return self._num_qubits
 
     def shallow_optimize(self):
-        # Contract single-qubit Cliffords
+        """
+        Performs a small optimization of single-qubit gates of the circuit.
+        """
         for i in range(self.num_qubits):
             targets = [[]]
             ops = [[]]
@@ -230,6 +391,14 @@ class Circuit:
         return circuit
 
     def two_qubit_gate_count(self) -> int:
+        """
+        Returns the number of two-qubit gates in the circuit.
+
+        Returns
+        ----------
+        int
+            Number of two-qubit gates.
+        """
         i = 0
         for op, qubits in self._gates:
             if len(qubits) == 2:
@@ -237,15 +406,43 @@ class Circuit:
         return i
 
     def gate_count(self) -> int:
+        """
+        Returns the number of gates in the circuit.
+
+        Returns
+        ----------
+        int
+            Number of gates.
+        """
         return len(self._gates)
 
     def append(self, gate: Union[Gate, List[Gate]]):
+        """
+        Add a gate or multiple gates to the circuit.
+        To add two circuits, use `Circuit("H 0") + Circuit("S 0")`.
+
+        Parameters
+        ----------
+        gate: Union[Gate, List[Gate]]
+            Gate or list of gates to add to the end of the circuit.
+        """
         if isinstance(gate, list):
             self._gates += gate
         else:
             self._gates.append(gate)
 
     def insert(self, index: int, gate: Gate):
+        """
+        Add a gate to a specified position in the circuit.
+        To add two circuits, use `Circuit("H 0") + Circuit("S 0")`.
+
+        Parameters
+        ----------
+        index: int
+            Position of the gate.
+        gate: Gate
+            Gate to add to the circuit.
+        """
         self._gates.insert(index, gate)
 
     def __str__(self) -> str:
@@ -258,6 +455,21 @@ class Circuit:
         return s
 
     def to_qiskit(self):
+        """
+        Transform the circuit into a qiskit circuit.
+
+        Raises
+
+        Returns
+        ----------
+        qiskit.QuantumCircuit
+            Circuit as QuantumCircuit from qiskit.
+
+        Raises
+        ----------
+        MissingOptionalLibraryError
+            If qiskit is not installed
+        """
         if not _has_qiskit:
             raise MissingOptionalLibraryError(
                 "to_qiskit() requires 'qiskit' to be installed")
@@ -287,7 +499,15 @@ class Circuit:
         return circuit
 
     def to_clifford(self) -> Clifford:
-        c = Clifford.from_matrix(np.identity(
+        """
+        Get the circuit as a Clifford object.
+
+        Returns
+        ----------
+        Clifford
+            Clifford object of the circuit.
+        """
+        c = Clifford(np.identity(
             2*self.num_qubits, dtype=np.int32))
         for gate, ts in reversed(self._gates):
             c = c@gate_to_clifford(gate, ts, self.num_qubits)
