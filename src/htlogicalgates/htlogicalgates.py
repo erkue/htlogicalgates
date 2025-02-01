@@ -339,5 +339,3 @@ class GateFinder:
             self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
         return sum(circs, start=paulis)
 
-tailor_logical_gate()
-tailor_multiple_logical_gates(stab_code=)
