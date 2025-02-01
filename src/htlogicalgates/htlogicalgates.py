@@ -15,7 +15,7 @@ from .grb_interface.grb_enviroment import Enviroment
 from .grb_interface.grb_gates import *
 from .grb_interface.grb_math_interface import *
 from .symplectic_rep import *
-from .symplectic_rep.random_symplectic import symplectic_matrix
+from .symplectic_rep.integer_symplectic import symplectic_matrix
 from .symplectic_rep.helper import LinSolver
 from .connectivity import Connectivity
 from .stabilizercode import StabilizerCode
@@ -40,34 +40,34 @@ def tailor_logical_gate(
 
     Parameters
     ----------
-    * `stab_code: StabilizerCode` \\
+    stab_code: StabilizerCode
         Stabilizer code for which a logical circuit should be tailored.
-    * `connectivity: Connectivity` \\
+    connectivity: Connectivity
         Connectivity to tailor circuit to. 
-    * `logical_gate: Union[Circuit, int]` \\
+    logical_gate: Union[Circuit, int]
         Representation of the logical gate in form of a circuit or integer.
-    * `num_cz_layers: int` \\
+    num_cz_layers: int
         Number of controlled-Z gate layers of the ansatz with which the circuit should
         be compiled.
-    * `time_limit: float, optional` \\
+    time_limit: float, optional
         Time in seconds until the programm aborts regardless of whether or not a circuit
         implementation has been found A value of -1 removes the time limit, by default -1.
-    * `log_to_console: bool, optional` \\
+    log_to_console: bool, optional
         Whether or not Gurobi should log its progress to the console, by default False.
-    * `log_file: str, optional` \\
+    log_file: str, optional
         File path of the log created by Gurobi. An emptry string removes the log-file, 
         by default "".
-    * `optimize: bool, optional` \\
+    optimize: bool, optional
         Collapse single-qubit Clifford gates after compilation, by default True.
-    * `gurobi: Dict, optional` \\
+    gurobi: Dict, optional
         Arguments to pass to the gurobi optimizer, by default {}.
-    * `perm: Tuple[bool, bool]` \\
+    perm: Tuple[bool, bool]
        If true, add a permutation layer to the start (index 0) or end (index 1) to the circuit,
         by default [False, False].
 
     Returns
     -------
-    `Tuple[Optional[Circuit], str]`
+    Tuple[Optional[Circuit], str]
         A representation of the circuit in form of a member the circuit class and a string
         containing the final status message. If a circuit has not been found, `None` is
         returned instead of the circuit.

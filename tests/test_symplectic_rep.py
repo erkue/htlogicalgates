@@ -4,7 +4,7 @@ import numpy as np
 
 from htlogicalgates.symplectic_rep.clifford_gate import *
 from htlogicalgates.symplectic_rep.helper import *
-from htlogicalgates.symplectic_rep.random_symplectic import symplectic_matrix, symplectic_matrix_inverse, is_symplectic
+from htlogicalgates.symplectic_rep.integer_symplectic import symplectic_matrix, symplectic_matrix_inverse, is_symplectic
 
 
 class TestHelper(unittest.TestCase):
@@ -20,6 +20,10 @@ class TestHelper(unittest.TestCase):
         mat = np.array([[1, 1, 1, 1, 0], [1, 0, 0, 0, 0],
                        [0, 0, 1, 1, 1], [0, 1, 0, 0, 1]])
         self.assertEqual(matrix_rank(mat), 3)
+
+    def test_pauli_string_to_list(self):
+        arr = pauli_string_to_list("x0 X2 z1 X2 Y3", 4)
+        np.testing.assert_array_equal([1, 0, 0, 1, 0, 1, 0, 1], arr)
 
 
 class TestCliffordGate(unittest.TestCase):
@@ -38,7 +42,7 @@ class TestCliffordGate(unittest.TestCase):
             self.assertTrue(c0 == c)
         self.assertEqual(c0.clifford_int, 0)
         self.assertEqual(c0.pauli_int, 0)
-        self.assertTrue(Clifford(32,2), Clifford(32, 0, 2))
+        self.assertTrue(Clifford(32, 2), Clifford(32, 0, 2))
         c5 = Clifford(3432, 45, 3)
         self.assertEqual(c5.num_qubits, 3)
         self.assertEqual(c5.clifford_int, 3432)

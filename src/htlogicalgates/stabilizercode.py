@@ -13,17 +13,80 @@ from ._utility import _argument_assignment
 
 class StabilizerCode:
     @overload
-    def __init__(self, name: str): ...
+    def __init__(self, name: str):
+        """
+        Construct a stabilizer code object by its name. To query available name, use
+        `available_stabilizercodes`.
+
+        Parameters
+        ----------
+        name: str 
+            Name of the stabilizer code
+        """
+        pass
     @overload
-    def __init__(self, name: str, num_qubits: int): ...
+    def __init__(self, name: str, num_qubits: int):
+        """
+        Construct a stabilizer code object by its name and number of qubits.
+        To query available name, use `available_stabilizercodes`.
+
+        Parameters
+        ----------
+        name: str 
+            Name of the stabilizer code
+        num_qubits: int
+            Number of qubits of the stabilizer code
+        """
+        pass
 
     @overload
     def __init__(self, paulis: Tuple[List[str], List[str],
-                 List[str]], skip_tests: bool = False): ...
+                 List[str]], skip_tests: bool = False): 
+        """
+        Construct a stabilizer code object by its stabilizers and logical Pauli operators.
+
+        Parameters
+        ----------
+        paulis: Tuple[List[str], List[str], List[str]]
+            Tuple of lists of strings. The tuple consists of (x_logicals, z_logicals, stabilizers),
+            representing the logical Pauli-X, logical Pauli-Z, and stabilizers, respectively.
+        skip_tests: bool, optional
+            Whether of not to skip commutativity tests of the Pauli operators, by default False.
+            
+        Examples
+        ----------
+
+        >>> x_log = ["X0 X1", "X0 X2"]
+        >>> z_log = ["Z0 Z2", "Z0 Z1"]
+        >>> stab = ["X0 X1 X2 X3", "Z0 Z1 Z2 Z3"]
+        >>> c = StabilizerCode((x_log, z_log, stab))
+        """
 
     @overload
     def __init__(self, x_logicals: List[str], z_logicals: List[str],
-                 stabilizers: List[str], skip_tests: bool = False): ...
+                 stabilizers: List[str], skip_tests: bool = False):
+        """
+        Construct a stabilizer code object by its stabilizers and logical Pauli operators.
+
+        Parameters
+        ----------
+        x_logicals: List[str]
+            Logical Pauli-X operators of the code.
+        z_logicals: List[str]
+            Logical Pauli-Z operators of the code.
+        stabilizers: List[str]
+            Stabilizers of the code
+        skip_tests: bool, optional
+            Whether of not to skip commutativity tests of the Pauli operators, by default False.
+            
+        Examples
+        ----------
+
+        >>> x_log = ["X0 X1", "X0 X2"]
+        >>> z_log = ["Z0 Z2", "Z0 Z1"]
+        >>> stab = ["X0 X1 X2 X3", "Z0 Z1 Z2 Z3"]
+        >>> c = StabilizerCode(x_log, z_log, stab)
+        """
 
     def __init__(self, *args, **kwargs):
         options = [{"name": str},
@@ -96,24 +159,65 @@ class StabilizerCode:
                 "Logical Pauli operators do not (anti-)commute correctly")
 
     def get_e_matrix(self) -> NDArray:
+        """
+        Returns the truncated stabilizer tableau of the code.
+
+        Returns
+        ----------
+        NDArray
+            Truncated stabilizer tableau.
+        """
         return self._e_mat
 
     @ property
     def n(self) -> int:
+        """
+        Returns the number of physical qubits of the stabilizer code.
+
+        Returns
+        ----------
+        int
+            Number of physical qubits.
+        """
         return np.shape(self._e_mat)[0]//2
 
     @ property
     def k(self) -> int:
+        """
+        Returns the number of logical qubits of the stabilizer code.
+
+        Returns
+        ----------
+        int
+            Number of logical qubits.
+        """
         return np.shape(self._e_mat)[1] - self.n
 
     @ property
     def d(self) -> int:
+        """
+        Returns the distance of the stabilizer code.
+
+        Returns
+        ----------
+        int
+            Distance of the stabilizer code.
+        """
         if self._distance == -1:
             self._compute_distance()
         return self._distance
 
     @ property
     def nkd(self) -> Tuple[int, int, int]:
+        """
+        Returns the number of physical qubits n, the number of logical qubits k,
+        and the distance d of the stabilizer code.
+
+        Returns
+        ----------
+        Tuple[inz, int, int]
+            The numbers [[n,k,d]] as a tuple.
+        """
         return (self.n, self.k, self.d)
 
     def _compute_distance(self):

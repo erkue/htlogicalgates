@@ -6,63 +6,63 @@ from numpy.typing import NDArray
 
 from .._utility import _argument_assignment
 from .helper import expand_mat_once, get_u_matrix, get_u_bar_matrix, expand_vec_once, int_to_bitarray, bitarray_to_int
-from .random_symplectic import symplectic_matrix, symplectic_matrix_inverse
+from .integer_symplectic import symplectic_matrix, symplectic_matrix_inverse
 
 
 class Clifford:
     @overload
     def __init__(self, clifford_int: int, num_qubits: int):
         """
-        Construct a Clifford gate without Paulis by its integer representation
+        Construct a Clifford gate without Paulis by its integer representation.
 
         Parameters
         ----------
         clifford_int: int 
-            Integer representing the Clifford part modulo Pauli gates
+            Integer representing the Clifford part modulo Pauli gates.
         num_qubits: int
-            Number of qubits the Clifford is defined on
+            Number of qubits the Clifford is defined on.
         """
-        ...
+        pass
 
     @overload
     def __init__(self, clifford_int: int, pauli_int: int, num_qubits: int):
         """
-        Construct a Clifford gate by its integer representation
+        Construct a Clifford gate by its integer representation.
 
         Parameters
         ----------
         clifford_int: int
-            Integer representing the Clifford part modulo Pauli gates
+            Integer representing the Clifford part modulo Pauli gates.
         pauli_int: int
-            Integer representing the Pauli part of the Clifford gate
+            Integer representing the Pauli part of the Clifford gate.
         num_qubits: int
-            Number of qubits the Clifford is defined on
+            Number of qubits the Clifford is defined on.
         """
-        ...
+        pass
 
     @overload
     def __init__(self, matrix: NDArray):
         """
-        Construct a Clifford gate from its stabilizer tableau
+        Construct a Clifford gate from its stabilizer tableau.
 
         Parameters
         ----------
         matrix: NDArray
-            Stabilizer tableau of the Clifford operator
+            Stabilizer tableau of the Clifford operator.
         """
         pass
 
     @overload
     def __init__(self, matrix: NDArray, phase: NDArray):
         """
-        Construct a Clifford gate from its stabilizer tableau and phase vector
+        Construct a Clifford gate from its stabilizer tableau and phase vector.
 
         Parameters
         ----------
         matrix: NDArray
-            Stabilizer tableau of the Clifford operator
+            Stabilizer tableau of the Clifford operator.
         phase: NDArray
-            Vector holding the phases under transformation of Pauli operators
+            Vector holding the phases under transformation of Pauli operators.
         """
         pass
 
@@ -103,24 +103,64 @@ class Clifford:
 
     @property
     def clifford_int(self) -> int:
+        """
+        Returns an integer identifying the pure Clifford part of the Clifford gate.
+
+        Returns
+        ----------
+        int
+            Integer representing the Clifford part.
+        """
         if 2*self.num_qubits != self.m:
             raise AttributeError("Must be a valid Clifford element")
         return symplectic_matrix_inverse(self._mat[:-1, :-1], self.num_qubits)
 
     @property
     def pauli_int(self) -> int:
+        """
+        Returns an integer identifying the Pauli part of the Clifford gate.
+
+        Returns
+        ----------
+        int
+            Integer representing the Pauli part.
+        """
         return bitarray_to_int(self._phase[:-1])
 
     @property
     def symplectic_matrix(self) -> NDArray:
+        """
+        Returns the symplectic stabilizer tableau of the Clifford gate.
+
+        Returns
+        ----------
+        NDArray
+            The stabilizer tableau.
+        """
         return self._mat[:-1, :-1]
 
     @property
     def phase(self) -> NDArray:
+        """
+        Returns a vector representing the phases of transformed Pauli operators.
+
+        Returns
+        ----------
+        NDArray
+            Vector x containing the phases (-1)^x.
+        """
         return self._phase[:-1]
 
     @property
     def num_qubits(self) -> int:
+        """
+        Returns the number of qubits the Clifford is defined on.
+
+        Returns
+        ----------
+        int
+            Number of qubits.
+        """
         return self._N
 
     @property
