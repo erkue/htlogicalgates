@@ -26,6 +26,10 @@ class Connectivity:
             self._mat = load_connectivity(a["name"], a["num_qubits"])
         elif i == 2:
             self._mat = a["matrix"]
+            if len(sh := np.shape(self._mat)) != 2:
+                raise ValueError("Connectivity() matrix input needs to be 2 dimensional")
+            if sh[0] != sh[1]:
+                raise ValueError("Connectivity() matrix input needs to be square")
         self._n = np.shape(self._mat)[0]
 
     @property

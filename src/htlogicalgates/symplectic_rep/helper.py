@@ -94,7 +94,21 @@ def max_index_of_pauli(s: str) -> int:
     return m + 1
 
 
-def _expand_mat(m: NDArray) -> NDArray:
+def int_to_bitarray(i: int, l: int) -> NDArray:
+    bitstring = (r"{0:"+str(l)+r"b}").format(i)
+    if l < len(bitstring):
+        raise ValueError(f"Integer '{str(i)}' too large for bitstring of length '{str(l)}'")
+    return np.array([1 if j == "1" else 0 for j in bitstring], dtype=np.int32)
+
+
+def bitarray_to_int(bitarray: NDArray) -> int:
+    string = ""
+    for i in bitarray:
+        string += "1" if i == 1 else "0"
+    return int(string, 2)
+
+
+def expand_mat_once(m: NDArray) -> NDArray:
     rows, columns = np.shape(m)
     m_bar = np.zeros((rows+1, columns+1), dtype=np.int32)
     m_bar[:rows, :columns] = m
@@ -102,7 +116,7 @@ def _expand_mat(m: NDArray) -> NDArray:
     return m_bar
 
 
-def _expand_vec(v: NDArray) -> NDArray:
+def expand_vec_once(v: NDArray) -> NDArray:
     d = len(v)
     v_bar = np.zeros((d+1,), dtype=np.int32)
     v_bar[:d] = v
@@ -110,21 +124,21 @@ def _expand_vec(v: NDArray) -> NDArray:
 
 
 @cache
-def _get_u(n: int) -> NDArray:
+def get_u_matrix(n: int) -> NDArray:
     u = np.zeros((2*n, 2*n))
     u[:n, n:2*n] = np.identity(n, dtype=np.int32)
     return u
 
 
 @cache
-def _get_omega(n: int) -> NDArray:
-    u = _get_u(n)
+def get_omega_matrix(n: int) -> NDArray:
+    u = get_u_matrix(n)
     return u + u.T
 
 
 @cache
-def _get_u_bar(n: int) -> NDArray:
-    return _expand_mat(_get_u(n))
+def get_u_bar_matrix(n: int) -> NDArray:
+    return expand_mat_once(get_u_matrix(n))
 
 
 class LinSolver:

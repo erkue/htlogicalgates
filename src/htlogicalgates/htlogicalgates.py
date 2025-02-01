@@ -15,7 +15,7 @@ from .grb_interface.grb_enviroment import Enviroment
 from .grb_interface.grb_gates import *
 from .grb_interface.grb_math_interface import *
 from .symplectic_rep import *
-from .symplectic_rep.random_symplectic import symplectic_t
+from .symplectic_rep.random_symplectic import symplectic_matrix
 from .symplectic_rep.helper import LinSolver
 from .connectivity import Connectivity
 from .stabilizercode import StabilizerCode
@@ -36,9 +36,7 @@ def tailor_logical_gate(
 ) -> Tuple[Optional[Circuit], str]:
     """
     Find a circuit implementation for a Clifford gate of a given quantum
-    error-correcting code tailored to a specified hardware connectivity. Some
-    codes and connectivities can be accessed by their names. For more information,
-    see `htlogicalgates.codes`.
+    error-correcting code tailored to a specified hardware connectivity.
 
     Parameters
     ----------
@@ -69,14 +67,17 @@ def tailor_logical_gate(
 
     Returns
     -------
-    Tuple[Optional[Circuit], str]
-        A representation of the circuit in form of a \
-        member the circuit class and a string containing the final status message. \
-        If a circuit has not been found, `None` is returned instead of the circuit.
+    `Tuple[Optional[Circuit], str]`
+        A representation of the circuit in form of a member the circuit class and a string
+        containing the final status message. If a circuit has not been found, `None` is
+        returned instead of the circuit.
 
     Examples
     --------
-        >>> circ = find_one_logical_gate("4_2_2", "circular", "H 0", 2, -1, True)
+        >>> conn = htlg.Connectivity("circular", n=4)
+        >>> stab_code = htlg.StabilizerCode("4_2_2")
+        >>> log_gate = htlg.Circuit("H 0", 2)
+        >>> circ, status = tailor_logical_gate(stab_code, conn, log_gate, 2)
 
     """
     if not isinstance(stab_code, StabilizerCode):
@@ -95,7 +96,7 @@ def tailor_logical_gate(
     else:
         add_phases = None
     if isinstance(logical_gate, int):
-        logical_gate = symplectic_t(logical_gate, len(stabilizer_matrix[:, 0]) // 2)
+        logical_gate = symplectic_matrix(logical_gate, len(stabilizer_matrix[:, 0]) // 2)
 
     gate_finder = GateFinder(num_cz_layers, connectivity.matrix, stabilizer_matrix, log_to_console,
                              log_file, gurobi, perm)
@@ -135,12 +136,11 @@ def tailor_multiple_logical_gates(
     optimize: bool = True,
     gurobi: Dict = {},
     perm: Tuple[bool, bool] = (False, False)
-) -> dict:
+) -> Dict:
     """
-    Find a circuit implementations for multiple Clifford gates of a given quantum
-    error-correcting code tailored to a specified hardware connectivity. Some
-    codes and connectivities can be accessed by their names. For more information,
-    see `htlogicalgates.codes`.
+    Find circuit implementations for multiple Clifford gates of a given quantum
+    error-correcting code tailored to a specified hardware connectivity. The
+    results can be saved to a file
 
     Parameters
     ----------
@@ -153,7 +153,10 @@ def tailor_multiple_logical_gates(
         Integers representing logical Clifford gates.
     * `num_cz_layers: int` \\
         Number of controlled-Z gate layers of the ansatz with which the circuit
-          should be compiled.
+        should be compiled.
+    * `output_file: str` \\
+        Name of the output file which stores constructed gates and runtime
+        information.
     * `time_limit: float, optional` \\
         Time in seconds until the programm aborts regardless of whether or not a
         circuit implementation has been found A value of -1 removes the time limit,
@@ -175,6 +178,8 @@ def tailor_multiple_logical_gates(
 
     Returns
     -------
+    `Dict`
+        Dictionary containing the constructed circuits and runtime information.
     """
     if not isinstance(stab_code, StabilizerCode):
         raise TypeError("Create qecc object via function 'get_code'!")
@@ -210,7 +215,7 @@ def tailor_multiple_logical_gates(
         "Gates": {}
     }
     for num, i in enumerate(iterate(logical_gates)):
-        gate_finder.set_logical_gate(symplectic_t(i, gate_finder.k))
+        gate_finder.set_logical_gate(symplectic_matrix(i, gate_finder.k))
         gate_finder.find_gate()
         if gate_finder.has_solution():
             circuit = gate_finder.get_circuit_implementation()
@@ -247,7 +252,7 @@ class GateFinder:
     ):
         self.NUM_CZL = num_CZL
         self.CON = con
-        self.ENC = Clifford.from_matrix(enc)
+        self.ENC = Clifford(enc)
         self.n = len(self.CON)
         self.k = self.ENC.m - self.n
         self.active_gate = False
@@ -311,9 +316,9 @@ class GateFinder:
     def get_circuit_implementation(self) -> Circuit:
         cliffs: List[Clifford] = [None] * (2*self.NUM_CZL + 1)
         circs: List[Circuit] = [None] * (2*self.NUM_CZL + 1)
-        cliffs[::2] = [Clifford.from_matrix(
+        cliffs[::2] = [Clifford(
             self.env.evaluate_matrix(i)) for i in self.SCLs]
-        cliffs[1::2] = [Clifford.from_matrix(
+        cliffs[1::2] = [Clifford(
             self.env.evaluate_matrix(i)) for i in self.CZLs]
         tot_cliff: Clifford = cliffs[0]
         circs[::2] = [Circuit.from_SCL(i) for i in cliffs[::2][::-1]]
@@ -322,12 +327,12 @@ class GateFinder:
         for c in cliffs[1:]:
             tot_cliff = c @ tot_cliff
         if self.Perms[0] != None:
-            self.Perms[0] = Clifford.from_matrix(
+            self.Perms[0] = Clifford(
                 self.env.evaluate_matrix(self.Perms[0]))
             tot_cliff = tot_cliff @ self.Perms[0]
             circs.insert(0, Circuit.from_permutation(self.Perms[0]))
         if self.Perms[1] != None:
-            self.Perms[1] = Clifford.from_matrix(
+            self.Perms[1] = Clifford(
                 self.env.evaluate_matrix(self.Perms[1]))
             tot_cliff = self.Perms[1] @ tot_cliff
             circs.append(Circuit.from_permutation(self.Perms[1]))

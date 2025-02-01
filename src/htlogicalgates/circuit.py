@@ -53,7 +53,7 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         assert (len(qubits) == 2)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[1]] = m[qubits[1]+n, qubits[0]] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.SWAP:
         assert (len(qubits) == 2)
         m = np.identity(2*n, dtype=np.int32)
@@ -61,53 +61,53 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         m[qubits[1], qubits[1]] = m[qubits[1]+n, qubits[1]+n] = 0
         m[qubits[0], qubits[1]] = m[qubits[0]+n, qubits[1]+n] = 1
         m[qubits[1], qubits[0]] = m[qubits[1]+n, qubits[0]+n] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.I or op == Operation.BARRIER:
         m = np.identity(2*n, dtype=np.int32)
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.S:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.H:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = m[qubits[0]+n, qubits[0]+n] = 0
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.C_ZYX:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0], qubits[0]] = 0
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.C_XYZ:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = m[qubits[0], qubits[0]+n] = 1
         m[qubits[0]+n, qubits[0]+n] = 0
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.SXDG:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0], qubits[0]+n] = 1
-        return Clifford.from_matrix(m)
+        return Clifford(m)
     if op == Operation.X:
         assert (len(qubits) == 1)
         p = np.zeros((2*n,), dtype=np.int32)
         p[qubits[0]+n] = 1
-        return Clifford.from_matrix_with_phase(np.identity(2*n, dtype=np.int32), p)
+        return Clifford(np.identity(2*n, dtype=np.int32), p)
     if op == Operation.Y:
         assert (len(qubits) == 1)
         p = np.zeros((2*n,), dtype=np.int32)
         p[qubits[0]+n] = p[qubits[0]] = 1
-        return Clifford.from_matrix_with_phase(np.identity(2*n, dtype=np.int32), p)
+        return Clifford(np.identity(2*n, dtype=np.int32), p)
     if op == Operation.Z:
         assert (len(qubits) == 1)
         p = np.zeros((2*n,), dtype=np.int32)
         p[qubits[0]] = 1
-        return Clifford.from_matrix_with_phase(np.identity(2*n, dtype=np.int32), p)
+        return Clifford(np.identity(2*n, dtype=np.int32), p)
     raise ValueError(f"Operation '{op.value}' not known")
 
 
@@ -287,7 +287,7 @@ class Circuit:
         return circuit
 
     def to_clifford(self) -> Clifford:
-        c = Clifford.from_matrix(np.identity(
+        c = Clifford(np.identity(
             2*self.num_qubits, dtype=np.int32))
         for gate, ts in reversed(self._gates):
             c = c@gate_to_clifford(gate, ts, self.num_qubits)
