@@ -15,8 +15,8 @@ class StabilizerCode:
     @overload
     def __init__(self, name: str):
         """
-        Construct a stabilizer code object by its name. To query available name, use
-        `available_stabilizercodes`.
+        Constructs a stabilizer code from a known code name. To query available names, use
+        `available_stabilizercodes()`.
 
         Parameters
         ----------
@@ -24,11 +24,12 @@ class StabilizerCode:
             Name of the stabilizer code
         """
         pass
+
     @overload
     def __init__(self, name: str, num_qubits: int):
         """
-        Construct a stabilizer code object by its name and number of qubits.
-        To query available name, use `available_stabilizercodes`.
+        Constructs a stabilizer code from a known code name and the number of qubits.
+        To query available names, use `available_stabilizercodes()`.
 
         Parameters
         ----------
@@ -41,18 +42,19 @@ class StabilizerCode:
 
     @overload
     def __init__(self, paulis: Tuple[List[str], List[str],
-                 List[str]], skip_tests: bool = False): 
+                 List[str]], skip_tests: bool = False):
         """
-        Construct a stabilizer code object by its stabilizers and logical Pauli operators.
+        Constructs a stabilizer code from a set of stabilizer generators and
+        logical Pauli operators.
 
         Parameters
         ----------
         paulis: Tuple[List[str], List[str], List[str]]
-            Tuple of lists of strings. The tuple consists of (x_logicals, z_logicals, stabilizers),
-            representing the logical Pauli-X, logical Pauli-Z, and stabilizers, respectively.
+            A tuple (x_logicals, z_logicals, stabilizers), representing the logical
+            Pauli-X operators, logical Pauli-Z operators, and stabilizers, respectively.
         skip_tests: bool, optional
-            Whether of not to skip commutativity tests of the Pauli operators, by default False.
-            
+            Whether to skip commutativity checks of the Pauli operators, by default False.
+
         Examples
         ----------
 
@@ -66,7 +68,8 @@ class StabilizerCode:
     def __init__(self, x_logicals: List[str], z_logicals: List[str],
                  stabilizers: List[str], skip_tests: bool = False):
         """
-        Construct a stabilizer code object by its stabilizers and logical Pauli operators.
+        Constructs a stabilizer code from a set of stabilizer generators
+        and logical Pauli operators.
 
         Parameters
         ----------
@@ -77,8 +80,8 @@ class StabilizerCode:
         stabilizers: List[str]
             Stabilizers of the code
         skip_tests: bool, optional
-            Whether of not to skip commutativity tests of the Pauli operators, by default False.
-            
+            Whether to skip commutativity tests of the Pauli operators, by default False.
+
         Examples
         ----------
 
@@ -91,9 +94,9 @@ class StabilizerCode:
     @overload
     def __init__(self, truncated_encoding: NDArray):
         """
-        Construct a stabilizer code object by its truncated encoding matrix. Columns
-        0 to k-1 specifiy the logical Pauli-X operators, columns k to 2k-1 specify the
-        logical Pauli-Z operators. and columns 2k to n+k specify the stabilizers.
+        Constructs a stabilizer code from a truncated encoding matrix. The columns
+        0 to k-1 specifiy the logical Pauli-X operators, the columns k to 2k-1 specify the
+        logical Pauli-Z operators. The columns 2k to n+k specify the stabilizers.
 
         Parameters
         ----------
@@ -108,7 +111,8 @@ class StabilizerCode:
                    {"paulis": Tuple},
                    {"paulis": Tuple, "skip_tests": bool},
                    {"x_logicals": List, "z_logicals": List, "stabilizers": List},
-                   {"x_logicals": List, "z_logicals": List, "stabilizers": List, "skip_tests": bool},
+                   {"x_logicals": List, "z_logicals": List,
+                       "stabilizers": List, "skip_tests": bool},
                    {"truncated_encoding": np.ndarray}]
         i, a = _argument_assignment(
             options, "StabilizerCode()", *args, **kwargs)
@@ -133,7 +137,8 @@ class StabilizerCode:
             self._e_mat = load_stabilizercode(a["name"], a["num_qubits"])
         elif i == 2:
             if len(a["paulis"]) != 3:
-                raise ValueError(f"StabilizerCode() argument got invalid value '{str(a['paulis'])}'")
+                raise ValueError(
+                    f"StabilizerCode() argument got invalid value '{str(a['paulis'])}'")
             self._e_mat = _get_qecc_e_from_paulis(
                 a["paulis"][0], a["paulis"][1], a["paulis"][2], False)
             self._check_validity()
@@ -187,7 +192,7 @@ class StabilizerCode:
         """
         return self._e_mat
 
-    @ property
+    @property
     def n(self) -> int:
         """
         Returns the number of physical qubits of the stabilizer code.
@@ -199,7 +204,7 @@ class StabilizerCode:
         """
         return np.shape(self._e_mat)[0]//2
 
-    @ property
+    @property
     def k(self) -> int:
         """
         Returns the number of logical qubits of the stabilizer code.
@@ -211,7 +216,7 @@ class StabilizerCode:
         """
         return np.shape(self._e_mat)[1] - self.n
 
-    @ property
+    @property
     def d(self) -> int:
         """
         Returns the distance of the stabilizer code.
@@ -225,7 +230,7 @@ class StabilizerCode:
             self._compute_distance()
         return self._distance
 
-    @ property
+    @property
     def nkd(self) -> Tuple[int, int, int]:
         """
         Returns the number of physical qubits n, the number of logical qubits k,
@@ -239,34 +244,34 @@ class StabilizerCode:
         return (self.n, self.k, self.d)
 
     def _compute_distance(self):
-        sle_a=np.zeros(self.n + 1, dtype=np.int32)
+        sle_a = np.zeros(self.n + 1, dtype=np.int32)
         for stabs in chain.from_iterable(combinations(self.get_e_matrix()[:, 2*self.k:].T, r)
                                          for r in range(self.n - self.k + 1)):
             if len(stabs) == 0:
                 sle_a[0] += 1
                 continue
-            stab=np.sum(stabs, axis=0) % 2
+            stab = np.sum(stabs, axis=0) % 2
             sle_a[np.count_nonzero(stab[:self.n] + stab[self.n])] += 1
-        sle_b=MacWilliams(self.n)@sle_a
-        self._distance=int(
+        sle_b = MacWilliams(self.n) @ sle_a
+        self._distance = int(
             np.min(np.nonzero(np.round(sle_b*2**self.k).astype(sle_a.dtype) - sle_a)))
 
 
 def reduce_to_stabilizer_generators(stabilizers: List[str]) -> List[str]:
-    num_qubits=max([max_index_of_pauli(i) for i in stabilizers])
-    stabs=np.array([pauli_string_to_list(i, num_qubits)
-                     for i in stabilizers], dtype=np.int32)
-    rank=matrix_rank(stabs)
-    index=[]
-    num=np.shape(stabs)[0]
-    i=0
+    num_qubits = max([max_index_of_pauli(i) for i in stabilizers])
+    stabs = np.array([pauli_string_to_list(i, num_qubits)
+                      for i in stabilizers], dtype=np.int32)
+    rank = matrix_rank(stabs)
+    index = []
+    num = np.shape(stabs)[0]
+    i = 0
     while i < num - len(index):
         if rank == matrix_rank(a := np.delete(stabs, i, axis=0)):
-            stabs=a
+            stabs = a
             index.append(i)
         else:
             i += 1
-    new_stabs=deepcopy(stabilizers)
+    new_stabs = deepcopy(stabilizers)
     for j in index:
         new_stabs.pop(j)
     return new_stabs

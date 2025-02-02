@@ -6,7 +6,8 @@ from typing import Tuple, List
 
 
 def matrix_rank(A: NDArray) -> int:
-    """ Computes the rank of a matrix A with coefficients in GF(2).
+    """ 
+    Computes the rank of a matrix A with coefficients in GF(2).
     Taken with permission from package `htstabilizer`
     """
     if (rows := np.shape(A)[0]) != (columns := np.shape(A)[1]):
@@ -16,7 +17,8 @@ def matrix_rank(A: NDArray) -> int:
         nA = A
 
     def rref(A: np.ndarray) -> Tuple[np.ndarray, List[int]]:
-        """Compute the reduced-row echelon form of a matrix A 
+        """
+        Computes the reduced-row echelon form of a matrix A 
         with entries in the binary field GF(2). 
 
         Parameters

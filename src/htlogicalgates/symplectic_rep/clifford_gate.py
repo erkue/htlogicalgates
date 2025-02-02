@@ -13,7 +13,7 @@ class Clifford:
     @overload
     def __init__(self, clifford_int: int, num_qubits: int):
         """
-        Construct a Clifford gate without Paulis by its integer representation.
+        Constructs a Clifford gate without Paulis by its integer representation.
 
         Parameters
         ----------
@@ -27,7 +27,7 @@ class Clifford:
     @overload
     def __init__(self, clifford_int: int, pauli_int: int, num_qubits: int):
         """
-        Construct a Clifford gate by its integer representation.
+        Constructs a Clifford gate by its integer representation.
 
         Parameters
         ----------
@@ -43,7 +43,7 @@ class Clifford:
     @overload
     def __init__(self, matrix: NDArray):
         """
-        Construct a Clifford gate from its stabilizer tableau.
+        Constructs a Clifford gate from a stabilizer tableau.
 
         Parameters
         ----------
@@ -55,7 +55,7 @@ class Clifford:
     @overload
     def __init__(self, matrix: NDArray, phase: NDArray):
         """
-        Construct a Clifford gate from its stabilizer tableau and phase vector.
+        Constructs a Clifford gate from a stabilizer tableau and a phase vector.
 
         Parameters
         ----------
@@ -107,11 +107,11 @@ class Clifford:
         Returns an integer identifying the pure Clifford part of the Clifford gate.
 
         Returns
-        ----------
+        -------
         int
             Integer representing the Clifford part.
         """
-        if 2*self.num_qubits != self.m:
+        if 2 * self.num_qubits != self.m:
             raise AttributeError("Must be a valid Clifford element")
         return symplectic_matrix_inverse(self._mat[:-1, :-1], self.num_qubits)
 
@@ -121,7 +121,7 @@ class Clifford:
         Returns an integer identifying the Pauli part of the Clifford gate.
 
         Returns
-        ----------
+        -------
         int
             Integer representing the Pauli part.
         """
@@ -133,7 +133,7 @@ class Clifford:
         Returns the symplectic stabilizer tableau of the Clifford gate.
 
         Returns
-        ----------
+        -------
         NDArray
             The stabilizer tableau.
         """
@@ -145,7 +145,7 @@ class Clifford:
         Returns a vector representing the phases of transformed Pauli operators.
 
         Returns
-        ----------
+        -------
         NDArray
             Vector x containing the phases (-1)^x.
         """
@@ -154,10 +154,10 @@ class Clifford:
     @property
     def num_qubits(self) -> int:
         """
-        Returns the number of qubits the Clifford is defined on.
+        Returns the number of qubits the Clifford operation is defined on.
 
         Returns
-        ----------
+        -------
         int
             Number of qubits.
         """
