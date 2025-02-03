@@ -41,7 +41,7 @@ class TestStabilizerCode(unittest.TestCase):
         x_log = ["X0 X1 X2", "X0 X2"]
         z_log = ["Z0 Z2", "Z0 Z1"]
         stab = ["X0 X1 X2 X3", "Z0 Z1 Z2 Z3"]
-        c = StabilizerCode(x_log, z_log, stab, skip_tests=True)
+        c = StabilizerCode(x_log, z_log, stab, verify=False)
         self.assertEqual(c.n, 4)
         self.assertEqual(c.k, 2)
         np.testing.assert_equal(c.get_e_matrix().T,

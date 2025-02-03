@@ -42,7 +42,7 @@ class StabilizerCode:
 
     @overload
     def __init__(self, paulis: Tuple[List[str], List[str],
-                 List[str]], skip_tests: bool = False):
+                 List[str]], verify: bool = True):
         """
         Constructs a stabilizer code from a set of stabilizer generators and
         logical Pauli operators.
@@ -52,8 +52,8 @@ class StabilizerCode:
         paulis: Tuple[List[str], List[str], List[str]]
             A tuple (x_logicals, z_logicals, stabilizers), representing the logical
             Pauli-X operators, logical Pauli-Z operators, and stabilizers, respectively.
-        skip_tests: bool, optional
-            Whether to skip commutativity checks of the Pauli operators, by default False.
+        verify: bool, optional
+            Whether to to check commutativity checks of the Pauli operators, by default True.
 
         Examples
         ----------
@@ -66,7 +66,7 @@ class StabilizerCode:
 
     @overload
     def __init__(self, x_logicals: List[str], z_logicals: List[str],
-                 stabilizers: List[str], skip_tests: bool = False):
+                 stabilizers: List[str], verify: bool = True):
         """
         Constructs a stabilizer code from a set of stabilizer generators
         and logical Pauli operators.
@@ -79,8 +79,8 @@ class StabilizerCode:
             Logical Pauli-Z operators of the code.
         stabilizers: List[str]
             Stabilizers of the code
-        skip_tests: bool, optional
-            Whether to skip commutativity tests of the Pauli operators, by default False.
+        verify: bool, optional
+            Whether to to check commutativity checks of the Pauli operators, by default True.
 
         Examples
         ----------
@@ -109,18 +109,18 @@ class StabilizerCode:
         options = [{"name": str},
                    {"name": str, "num_qubits": int},
                    {"paulis": Tuple},
-                   {"paulis": Tuple, "skip_tests": bool},
+                   {"paulis": Tuple, "verify": bool},
                    {"x_logicals": List, "z_logicals": List, "stabilizers": List},
                    {"x_logicals": List, "z_logicals": List,
-                       "stabilizers": List, "skip_tests": bool},
+                       "stabilizers": List, "verify": bool},
                    {"truncated_encoding": np.ndarray}]
         i, a = _argument_assignment(
             options, "StabilizerCode()", *args, **kwargs)
 
-        def _get_qecc_e_from_paulis(x_logicals, z_logicals, stabilizers, st) -> NDArray:
+        def _get_qecc_e_from_paulis(x_logicals, z_logicals, stabilizers, verify) -> NDArray:
             k = len(x_logicals)
             n = len(stabilizers) + k
-            if not st:
+            if verify:
                 if k != len(z_logicals):
                     raise ValueError(
                         "Different number of logical Pauli-X and Pauli-Z operators")
@@ -140,21 +140,21 @@ class StabilizerCode:
                 raise ValueError(
                     f"StabilizerCode() argument got invalid value '{str(a['paulis'])}'")
             self._e_mat = _get_qecc_e_from_paulis(
-                a["paulis"][0], a["paulis"][1], a["paulis"][2], False)
+                a["paulis"][0], a["paulis"][1], a["paulis"][2], True)
             self._check_validity()
         elif i == 3:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["paulis"][0], a["paulis"][1], a["paulis"][2], a["skip_tests"])
-            if not a["skip_tests"]:
+                a["paulis"][0], a["paulis"][1], a["paulis"][2], a["verify"])
+            if a["verify"]:
                 self._check_validity()
         elif i == 4:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["x_logicals"], a["z_logicals"], a["stabilizers"], False)
+                a["x_logicals"], a["z_logicals"], a["stabilizers"], True)
             self._check_validity()
         elif i == 5:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["x_logicals"], a["z_logicals"], a["stabilizers"], a["skip_tests"])
-            if not a["skip_tests"]:
+                a["x_logicals"], a["z_logicals"], a["stabilizers"], a["verify"])
+            if a["verify"]:
                 self._check_validity()
         elif i == 6:
             self._e_mat = a["truncated_encoding"]
