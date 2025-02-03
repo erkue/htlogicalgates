@@ -3,6 +3,7 @@ from numpy.typing import NDArray
 from typing import Tuple, List, overload
 from copy import deepcopy
 from itertools import chain, combinations
+from functools import cached_property
 from qsalto import M as MacWilliams
 
 from .symplectic_rep.helper import pauli_string_to_list, max_index_of_pauli
@@ -42,7 +43,7 @@ class StabilizerCode:
 
     @overload
     def __init__(self, paulis: Tuple[List[str], List[str],
-                 List[str]], skip_tests: bool = False):
+                 List[str]], verify: bool = True):
         """
         Constructs a stabilizer code from a set of stabilizer generators and
         logical Pauli operators.
@@ -52,8 +53,8 @@ class StabilizerCode:
         paulis: Tuple[List[str], List[str], List[str]]
             A tuple (x_logicals, z_logicals, stabilizers), representing the logical
             Pauli-X operators, logical Pauli-Z operators, and stabilizers, respectively.
-        skip_tests: bool, optional
-            Whether to skip commutativity checks of the Pauli operators, by default False.
+        verify: bool, optional
+            Whether to to check commutativity checks of the Pauli operators, by default True.
 
         Examples
         ----------
@@ -66,7 +67,7 @@ class StabilizerCode:
 
     @overload
     def __init__(self, x_logicals: List[str], z_logicals: List[str],
-                 stabilizers: List[str], skip_tests: bool = False):
+                 stabilizers: List[str], verify: bool = True):
         """
         Constructs a stabilizer code from a set of stabilizer generators
         and logical Pauli operators.
@@ -79,8 +80,8 @@ class StabilizerCode:
             Logical Pauli-Z operators of the code.
         stabilizers: List[str]
             Stabilizers of the code
-        skip_tests: bool, optional
-            Whether to skip commutativity tests of the Pauli operators, by default False.
+        verify: bool, optional
+            Whether to to check commutativity checks of the Pauli operators, by default True.
 
         Examples
         ----------
@@ -109,18 +110,18 @@ class StabilizerCode:
         options = [{"name": str},
                    {"name": str, "num_qubits": int},
                    {"paulis": Tuple},
-                   {"paulis": Tuple, "skip_tests": bool},
+                   {"paulis": Tuple, "verify": bool},
                    {"x_logicals": List, "z_logicals": List, "stabilizers": List},
                    {"x_logicals": List, "z_logicals": List,
-                       "stabilizers": List, "skip_tests": bool},
+                       "stabilizers": List, "verify": bool},
                    {"truncated_encoding": np.ndarray}]
         i, a = _argument_assignment(
             options, "StabilizerCode()", *args, **kwargs)
 
-        def _get_qecc_e_from_paulis(x_logicals, z_logicals, stabilizers, st) -> NDArray:
+        def _get_qecc_e_from_paulis(x_logicals, z_logicals, stabilizers, verify) -> NDArray:
             k = len(x_logicals)
             n = len(stabilizers) + k
-            if not st:
+            if verify:
                 if k != len(z_logicals):
                     raise ValueError(
                         "Different number of logical Pauli-X and Pauli-Z operators")
@@ -140,21 +141,21 @@ class StabilizerCode:
                 raise ValueError(
                     f"StabilizerCode() argument got invalid value '{str(a['paulis'])}'")
             self._e_mat = _get_qecc_e_from_paulis(
-                a["paulis"][0], a["paulis"][1], a["paulis"][2], False)
+                a["paulis"][0], a["paulis"][1], a["paulis"][2], True)
             self._check_validity()
         elif i == 3:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["paulis"][0], a["paulis"][1], a["paulis"][2], a["skip_tests"])
-            if not a["skip_tests"]:
+                a["paulis"][0], a["paulis"][1], a["paulis"][2], a["verify"])
+            if a["verify"]:
                 self._check_validity()
         elif i == 4:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["x_logicals"], a["z_logicals"], a["stabilizers"], False)
+                a["x_logicals"], a["z_logicals"], a["stabilizers"], True)
             self._check_validity()
         elif i == 5:
             self._e_mat = _get_qecc_e_from_paulis(
-                a["x_logicals"], a["z_logicals"], a["stabilizers"], a["skip_tests"])
-            if not a["skip_tests"]:
+                a["x_logicals"], a["z_logicals"], a["stabilizers"], a["verify"])
+            if a["verify"]:
                 self._check_validity()
         elif i == 6:
             self._e_mat = a["truncated_encoding"]
@@ -216,34 +217,17 @@ class StabilizerCode:
         """
         return np.shape(self._e_mat)[1] - self.n
 
-    @property
+    @cached_property
     def d(self) -> int:
         """
-        Returns the distance of the stabilizer code.
+        Returns the distance of the stabilizer code. The process of computing the
+        distance may take some time.
 
         Returns
         ----------
         int
             Distance of the stabilizer code.
         """
-        if self._distance == -1:
-            self._compute_distance()
-        return self._distance
-
-    @property
-    def nkd(self) -> Tuple[int, int, int]:
-        """
-        Returns the number of physical qubits n, the number of logical qubits k,
-        and the distance d of the stabilizer code.
-
-        Returns
-        ----------
-        Tuple[inz, int, int]
-            The numbers [[n,k,d]] as a tuple.
-        """
-        return (self.n, self.k, self.d)
-
-    def _compute_distance(self):
         sle_a = np.zeros(self.n + 1, dtype=np.int32)
         for stabs in chain.from_iterable(combinations(self.get_e_matrix()[:, 2*self.k:].T, r)
                                          for r in range(self.n - self.k + 1)):
@@ -253,8 +237,21 @@ class StabilizerCode:
             stab = np.sum(stabs, axis=0) % 2
             sle_a[np.count_nonzero(stab[:self.n] + stab[self.n])] += 1
         sle_b = MacWilliams(self.n) @ sle_a
-        self._distance = int(
-            np.min(np.nonzero(np.round(sle_b*2**self.k).astype(sle_a.dtype) - sle_a)))
+        return int(np.min(np.nonzero(np.round(sle_b*2**self.k).astype(sle_a.dtype) - sle_a)))
+
+    @property
+    def nkd(self) -> Tuple[int, int, int]:
+        """
+        Returns the number of physical qubits n, the number of logical qubits k,
+        and the distance d of the stabilizer code. The process of computing the
+        distance may take some time.
+
+        Returns
+        ----------
+        Tuple[int, int, int]
+            The numbers [[n,k,d]] as a tuple.
+        """
+        return (self.n, self.k, self.d)
 
 
 def reduce_to_stabilizer_generators(stabilizers: List[str]) -> List[str]:

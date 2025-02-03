@@ -43,7 +43,7 @@ def tailor_logical_gate(
     stab_code: StabilizerCode
         Stabilizer code for which a logical circuit should be tailored.
     connectivity: Connectivity
-        Connectivity to tailor the circuit to. 
+        Connectivity to tailor the circuit to.
     logical_gate: Union[Circuit, int]
         Representation of the logical gate in form of a circuit or integer.
     num_cz_layers: int
@@ -55,7 +55,7 @@ def tailor_logical_gate(
     log_to_console: bool, optional
         Whether or not Gurobi should log its progress to the console, by default False.
     log_file: str, optional
-        File path of the log created by Gurobi. An empty string removes the log file, 
+        File path of the log created by Gurobi. An empty string removes the log file,
         by default "".
     optimize: bool, optional
         Whether to collapse single-qubit Clifford gates after compilation, by default True.
@@ -68,7 +68,7 @@ def tailor_logical_gate(
     Returns
     -------
     Tuple[Optional[Circuit], str]
-        A circuit (if one has been found) and a status message. 
+        A circuit (if one has been found) and a status message.
 
     Examples
     --------
@@ -79,10 +79,10 @@ def tailor_logical_gate(
 
     """
     if not isinstance(stab_code, StabilizerCode):
-        raise TypeError("Create qecc object via function 'get_qecc'!")
+        raise TypeError("Create qecc object via function 'get_qecc'.")
     stabilizer_matrix = stab_code.get_e_matrix()
     if not isinstance(connectivity, Connectivity):
-        raise TypeError("Create connectivity object via function 'get_conn'!")
+        raise TypeError("Create connectivity object via function 'get_conn'")
     if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int):
         raise TypeError("Expected a `Circuit` object for `logical_gate`")
 
@@ -94,7 +94,13 @@ def tailor_logical_gate(
     else:
         add_phases = None
     if isinstance(logical_gate, int):
-        logical_gate = symplectic_matrix(logical_gate, len(stabilizer_matrix[:, 0]) // 2)
+        logical_gate = symplectic_matrix(
+            logical_gate, len(stabilizer_matrix[:, 0]) // 2)
+
+    if not stab_code.n == connectivity.num_qubits:
+        raise ValueError(f"Stabilizer code is defined on '{stab_code.n}' qubits but connectvity on '{connectivity.num_qubits}'")
+    if not stab_code.k == len(logical_gate) // 2:
+        raise ValueError(f"Stabilizer code has '{stab_code.k}' logical qubits but logical gate is defined on '{len(logical_gate) // 2}'")
 
     gate_finder = GateFinder(num_cz_layers, connectivity.matrix, stabilizer_matrix, log_to_console,
                              log_file, gurobi, perm)
@@ -194,6 +200,9 @@ def tailor_multiple_logical_gates(
 
             return tqdm(x, smoothing=0)  # type: ignore
         return x
+    
+    if not stab_code.n == connectivity.num_qubits:
+        raise ValueError(f"Stabilizer code is defined on '{stab_code.n}' qubits but connectvity on '{connectivity.num_qubits}'")
 
     gate_finder = GateFinder(num_cz_layers, connectivity_matrix, stabilizer_matrix,
                              False, log_file, gurobi, perm)
@@ -258,8 +267,10 @@ class GateFinder:
         self.env = Enviroment(log_to_console, log_file, gurobi)
         self.SCLs = [create_SCL(self.n, self.env)] + \
             [create_cons_SCL(self.n, self.env) for _ in range(self.NUM_CZL)]
-        self.CZLs = [create_CZL(self.CON, self.env) for _ in range(self.NUM_CZL)]
-        self.LOGICAL, self.LOG_IDS = self.env.create_predef_bin_matrix(2*self.k, 2*self.k)
+        self.CZLs = [create_CZL(self.CON, self.env)
+                     for _ in range(self.NUM_CZL)]
+        self.LOGICAL, self.LOG_IDS = self.env.create_predef_bin_matrix(
+            2*self.k, 2*self.k)
         self.FREEDOM = create_reduced_freedom_matrix(self.n, self.k, self.env)
         self.Perms: List[Union[None, Clifford, ExprMatrix]] = [None, None]
         self.ANSATZ = self.SCLs[0]
@@ -338,4 +349,3 @@ class GateFinder:
         paulis = Circuit.from_paulis(
             self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
         return sum(circs, start=paulis)
-

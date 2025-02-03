@@ -174,10 +174,21 @@ class Circuit:
             m = 0
             try:
                 for j, l in enumerate(a["init_string"].splitlines()):
+                    l = l.split("#", 1)[0]
                     parts = l.strip().split()
-                    self._gates.append((Operation(parts[0].upper()), [
-                        int(i) for i in parts[1:]]))
-                    m = max(max(self._gates[-1][1])+1, m)
+                    if len(parts) == 0:
+                        continue
+                    elif len(parts) == 1:
+                        for operation in Operation:
+                            if operation.value in parts[0].upper():
+                                self._gates.append(
+                                    (operation, [int(parts[0].upper().replace(operation.value, ""))]))
+                                m = max(max(self._gates[-1][1])+1, m)
+                                break
+                    else:
+                        self._gates.append((Operation(parts[0].upper()), [
+                            int(i) for i in parts[1:]]))
+                        m = max(max(self._gates[-1][1])+1, m)
             except ValueError:
                 raise ValueError(
                     f"Invalid instruction in line {str(j)}: '{l}'")
