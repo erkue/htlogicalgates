@@ -142,7 +142,7 @@ class Circuit:
         pass
 
     @overload
-    def __init__(self, init_string: str, num_qubits: str):
+    def __init__(self, init_string: str, num_qubits: int):
         """
         Constructs a circuit from a string defined on a number of qubits. The number of
         qubits must be large enough to contain all gates from the string.
