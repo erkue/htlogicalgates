@@ -248,7 +248,7 @@ class StabilizerCode:
 
         Returns
         ----------
-        Tuple[inz, int, int]
+        Tuple[int, int, int]
             The numbers [[n,k,d]] as a tuple.
         """
         return (self.n, self.k, self.d)
