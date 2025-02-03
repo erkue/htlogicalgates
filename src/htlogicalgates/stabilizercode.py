@@ -3,6 +3,7 @@ from numpy.typing import NDArray
 from typing import Tuple, List, overload
 from copy import deepcopy
 from itertools import chain, combinations
+from functools import cached_property
 from qsalto import M as MacWilliams
 
 from .symplectic_rep.helper import pauli_string_to_list, max_index_of_pauli
@@ -216,34 +217,17 @@ class StabilizerCode:
         """
         return np.shape(self._e_mat)[1] - self.n
 
-    @property
+    @cached_property
     def d(self) -> int:
         """
-        Returns the distance of the stabilizer code.
+        Returns the distance of the stabilizer code. The process of computing the
+        distance may take some time.
 
         Returns
         ----------
         int
             Distance of the stabilizer code.
         """
-        if self._distance == -1:
-            self._compute_distance()
-        return self._distance
-
-    @property
-    def nkd(self) -> Tuple[int, int, int]:
-        """
-        Returns the number of physical qubits n, the number of logical qubits k,
-        and the distance d of the stabilizer code.
-
-        Returns
-        ----------
-        Tuple[inz, int, int]
-            The numbers [[n,k,d]] as a tuple.
-        """
-        return (self.n, self.k, self.d)
-
-    def _compute_distance(self):
         sle_a = np.zeros(self.n + 1, dtype=np.int32)
         for stabs in chain.from_iterable(combinations(self.get_e_matrix()[:, 2*self.k:].T, r)
                                          for r in range(self.n - self.k + 1)):
@@ -253,8 +237,21 @@ class StabilizerCode:
             stab = np.sum(stabs, axis=0) % 2
             sle_a[np.count_nonzero(stab[:self.n] + stab[self.n])] += 1
         sle_b = MacWilliams(self.n) @ sle_a
-        self._distance = int(
-            np.min(np.nonzero(np.round(sle_b*2**self.k).astype(sle_a.dtype) - sle_a)))
+        return int(np.min(np.nonzero(np.round(sle_b*2**self.k).astype(sle_a.dtype) - sle_a)))
+
+    @property
+    def nkd(self) -> Tuple[int, int, int]:
+        """
+        Returns the number of physical qubits n, the number of logical qubits k,
+        and the distance d of the stabilizer code. The process of computing the
+        distance may take some time.
+
+        Returns
+        ----------
+        Tuple[inz, int, int]
+            The numbers [[n,k,d]] as a tuple.
+        """
+        return (self.n, self.k, self.d)
 
 
 def reduce_to_stabilizer_generators(stabilizers: List[str]) -> List[str]:
