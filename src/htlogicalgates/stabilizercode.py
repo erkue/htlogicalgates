@@ -54,7 +54,7 @@ class StabilizerCode:
             A tuple (x_logicals, z_logicals, stabilizers), representing the logical
             Pauli-X operators, logical Pauli-Z operators, and stabilizers, respectively.
         verify: bool, optional
-            Whether to to check commutativity checks of the Pauli operators, by default True.
+            Whether to verify commutation relations of the operators, by default True.
 
         Examples
         ----------
@@ -81,7 +81,7 @@ class StabilizerCode:
         stabilizers: List[str]
             Stabilizers of the code
         verify: bool, optional
-            Whether to to check commutativity checks of the Pauli operators, by default True.
+            Whether to verify commutation relations of the operators, by default True.
 
         Examples
         ----------
