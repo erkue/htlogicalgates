@@ -36,9 +36,12 @@ class TestTailorLogicalGate(unittest.TestCase):
         self.assertEqual(len(res["Gates"]), 3)
         self.assertEqual(res["Gates"][0]["Circuit"].two_qubit_gate_count(), 0)
         self.assertEqual(res["Gates"][1]["Circuit"].two_qubit_gate_count(), 4)
-        self.assertEqual(res["Gates"][121]["Circuit"].two_qubit_gate_count(), 3)
+        self.assertEqual(res["Gates"][121]
+                         ["Circuit"].two_qubit_gate_count(), 3)
 
-    def test_save_load_results(self):
+
+class TestSaveLoadResults(unittest.TestCase):
+    def test_save_load_results_dictionary(self):
         conn = Connectivity("circular", num_qubits=4)
         qecc = StabilizerCode("4_2_2")
         res = tailor_multiple_logical_gates(qecc, conn, [0, 1, 121], 2)
@@ -56,4 +59,25 @@ class TestTailorLogicalGate(unittest.TestCase):
         self.assertIsInstance(res_loaded["Meta"]["Connectivity"], Connectivity)
         self.assertIsInstance(res_loaded["Meta"]["Code"], StabilizerCode)
         self.assertEqual(res_loaded["Meta"]["Connectivity"].num_qubits, 4)
+        self.assertEqual(res_loaded["Meta"]["Code"].k, 2)
+
+    def test_save_load_none(self):
+        conn = Connectivity("circular", num_qubits=4)
+        qecc = StabilizerCode("4_2_2")
+        res = tailor_multiple_logical_gates(qecc, conn, [0, 1, 121], 2, time_limit=0.001)
+        with TemporaryDirectory() as tmp_dir:
+            filepath = os.path.join(tmp_dir, "results.json")
+            save_results_dictionary(res, filepath)
+            res_loaded = load_results_dictionary(filepath)
+        self.assertEqual(res_loaded["Gates"][0]["Circuit"],
+                         res["Gates"][0]["Circuit"])
+        self.assertEqual(res_loaded["Gates"][1]["Circuit"],
+                         res["Gates"][1]["Circuit"])
+        self.assertEqual(res_loaded["Gates"][121]["Circuit"],
+                         res["Gates"][121]["Circuit"])
+        self.assertEqual(res_loaded["Meta"]["Number CZ layers"], 2)
+        self.assertIsInstance(res_loaded["Meta"]["Connectivity"], Connectivity)
+        self.assertIsInstance(res_loaded["Meta"]["Code"], StabilizerCode)
+        self.assertEqual(res_loaded["Meta"]["Connectivity"].num_qubits, 4)
+        self.assertAlmostEqual(res_loaded["Meta"]["Time limit"], 0.001)
         self.assertEqual(res_loaded["Meta"]["Code"].k, 2)

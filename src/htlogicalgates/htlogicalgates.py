@@ -255,32 +255,17 @@ def save_results_dictionary(results: Dict, filepath: str):
     filepath: str
         File path to save the .json-file.
     """
-    serializable = {"Meta": {}, "Gates": {}}
-
-    connectivity = results.get("Meta", {}).get("Connectivity", "N/A")
-    if isinstance(connectivity, Connectivity):
-        connectivity = connectivity.matrix.tolist()
-    serializable["Meta"]["Connectivity"] = connectivity
-
-    code = results.get("Meta", {}).get("Code", "N/A")
-    if isinstance(code, StabilizerCode):
-        code = code.get_e_matrix().tolist()
-    serializable["Meta"]["Code"] = code
-    serializable["Meta"]["Number CZ layers"] = results.get("Meta", {}).get("Number CZ layers", "N/A")
-    serializable["Meta"]["Time limit"] = results.get("Meta", {}).get("Time limit", "N/A")
-    serializable["Meta"]["Started"] = results.get("Meta", {}).get("Started", "N/A")
-
+    results = deepcopy(results)
+    if (c := results.get("Meta", {}).get("Connectivity", "N/A")) != "N/A":
+        results["Meta"]["Connectivity"] = c.matrix.tolist()
+    if (c := results.get("Meta", {}).get("Code", "N/A")) != "N/A":
+        results["Meta"]["Code"] = c.get_e_matrix().tolist()
     for key, val in results.get("Gates", {}).items():
-        circuit = val.get("Circuit", None)
-        if isinstance(circuit, Circuit):
-            circuit = circuit.__str__()
-        serializable["Gates"][key] = {}
-        serializable["Gates"][key]["Circuit"] = circuit
-        serializable["Gates"][key]["Status"] = val.get("Status", "N/A")
-        serializable["Gates"][key]["Runtime"] = val.get("Runtime", "N/A")
-
+        circ = val.get("Circuit", None) 
+        if isinstance(circ, Circuit):
+            results["Gates"][key]["Circuit"] = circ.__str__()
     with open(filepath, 'w') as file:
-        json.dump(serializable, file)
+        json.dump(results, file)
 
 
 def load_results_dictionary(filepath: str):
