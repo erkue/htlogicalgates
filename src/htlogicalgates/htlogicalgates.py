@@ -148,41 +148,41 @@ def tailor_multiple_logical_gates(
 
     Parameters
     ----------
-    * `stab_code: StabilizerCode` \\
+    stab_code: StabilizerCode
         Stabilizer code for which a logical circuit should be tailored.
-    * `connectivity: Union[str, NDArray]` \\
-        Name of connectivity or numpy array of shape (n,n) representing the
-        connectivity matrix. 
-    * `logical_gates: Iterable[int]` \\
-        Integers representing logical Clifford gates.
-    * `num_cz_layers: int` \\
-        Number of controlled-Z gate layers of the ansatz with which the circuit
-        should be compiled.
-    * `output_file: str` \\
-        Name of the output file which stores constructed gates and runtime
-        information.
-    * `time_limit: float, optional` \\
-        Time in seconds until the programm aborts regardless of whether or not a
-        circuit implementation has been found. A value of -1 removes the time limit,
-        by default -1.
-    * `log_to_console: bool, optional` \\
+    connectivity: Connectivity
+        Connectivity to tailor the circuit to.
+    logical_gates: Iterable[int]
+        Iterable of integers identifying the Clifford gates that should be constructed.
+    num_cz_layers: int
+        Number of controlled-Z gate layers for the ansatz with which the circuit should
+        be compiled.
+    output_file: str, optional
+        Filepath where the results dictionary is stored as a .json-file, by default "".
+    time_limit: float, optional
+        Time in seconds until the program aborts regardless of whether or not a circuit
+        implementation has been found. A value of -1 removes the time limit, by default -1.
+    log_to_console: bool, optional
         Whether or not Gurobi should log its progress to the console, by default False.
-    * `log_file: str, optional` \\
+    log_file: str, optional
         File path of the log created by Gurobi. An empty string removes the log file,
         by default "".
-    * `progress_bar: bool, optional` \\
-        Whether or not to show a progress bar. Requires tqdm to be installed, by default False.
-    * `optimize: bool, optional` \\
-        Collapse single-qubit Clifford gates after compilation, by default True.
-    * `gurobi: Dict, optional` \\
+    progress_bar: bool, optianl
+        Whether or not to show a progress bar. Requires the tqdm package, by default False.
+    save_every: int, optional
+        If given an output file, continually save gates after constructing this many gates,
+        by default 1.
+    optimize: bool, optional
+        Whether to collapse single-qubit Clifford gates after compilation, by default True.
+    gurobi: Dict, optional
         Arguments to pass to the Gurobi optimizer, by default {}.
-    * `perm: Tuple[bool, bool]` \\
-        If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
+    perm: Tuple[bool, bool]
+       If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
         by default [False, False].
 
     Returns
     -------
-    `Dict`
+    Dict
         Dictionary containing the constructed circuits and runtime information.
     """
     if not isinstance(stab_code, StabilizerCode):
@@ -211,10 +211,8 @@ def tailor_multiple_logical_gates(
     gate_finder.set_target_function()
     stor = {
         "Meta": {
-            "Connectivity": repr(connectivity_matrix),
-            "Code": repr(stabilizer_matrix),
-            "n": gate_finder.n,
-            "k": gate_finder.k,
+            "Connectivity": connectivity,
+            "Code": stab_code,
             "Number CZ layers": num_cz_layers,
             "Time limit": time_limit,
             "Started": str(datetime.now())
@@ -228,7 +226,7 @@ def tailor_multiple_logical_gates(
             circuit = gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
-            stor["Gates"][i] = {"Circuit": circuit.__str__(),
+            stor["Gates"][i] = {"Circuit": circuit,
                                 "Status": gate_finder.get_status(),
                                 "Runtime": gate_finder.get_runtime()}
         else:
@@ -244,6 +242,61 @@ def tailor_multiple_logical_gates(
         with open(output_file, 'w') as file:
             json.dump(stor, file)
     return stor
+
+def save_results_dictionary(results: Dict, filepath: str):
+    """
+    Saves the result dictionary returned by `tailor_multiple_logical_gates`
+    to a .json-file.
+
+    Parameters
+    ----------
+    results: Dict
+        Results dictionary.
+    filepath: str
+        File path to save the .json-file.
+    """
+    results = deepcopy(results)
+    if (c := results.get("Meta", {}).get("Connectivity", "N/A")) != "N/A":
+        results["Meta"]["Connectivity"] = c.matrix.tolist()
+    if (c := results.get("Meta", {}).get("Code", "N/A")) != "N/A":
+        results["Meta"]["Code"] = c.get_e_matrix().tolist()
+    for key, val in results.get("Gates", {}).items():
+        circ = val.get("Circuit", None) 
+        if isinstance(circ, Circuit):
+            results["Gates"][key]["Circuit"] = circ.__str__()
+    with open(filepath, 'w') as file:
+        json.dump(results, file)
+
+
+def load_results_dictionary(filepath: str):
+    """
+    Loads the result dictionary saved by `save_results_dictionary`.
+
+    Parameters
+    ----------
+    filepath: str
+        File path to load the results dictionary.
+    
+    Returns
+    ----------
+    Dict:
+        Dictionary containing the information stored in the .json-file.
+    """
+    with open(filepath, "r") as file:
+        results = json.load(file)
+    if (c := results.get("Meta", {}).get("Connectivity", "N/A")) != "N/A":
+        results["Meta"]["Connectivity"] = Connectivity(np.array(c, dtype=np.int32)) 
+    if (c := results.get("Meta", {}).get("Code", "N/A")) != "N/A":
+        results["Meta"]["Code"] = StabilizerCode(np.array(c, dtype=np.int32)) 
+    for key, val in results.get("Gates", {}).items():
+        circ = val.get("Circuit", None) 
+        if isinstance(circ, str) and circ.capitalize() != "NONE":
+            results["Gates"][key]["Circuit"] = Circuit(circ)
+        else:
+            results["Gates"][key]["Circuit"] = None
+    for key in list(results.get("Gates", {}).keys()):
+        results["Gates"][int(key)] = results["Gates"].pop(key)
+    return results
 
 
 class GateFinder:
