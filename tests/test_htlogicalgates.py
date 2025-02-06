@@ -1,4 +1,6 @@
 import unittest
+import os
+from tempfile import TemporaryDirectory
 
 from htlogicalgates import *
 
@@ -20,7 +22,7 @@ class TestTailorLogicalGate(unittest.TestCase):
             qecc, conn, log_gate, 2))
         self.assertRaises(ValueError, lambda: tailor_multiple_logical_gates(
             qecc, conn, [0, 1, 121], 2))
-        
+
         conn = Connectivity("circular", num_qubits=4)
         qecc = StabilizerCode("4_2_2")
         log_gate = Circuit("H 0", 3)
@@ -32,9 +34,26 @@ class TestTailorLogicalGate(unittest.TestCase):
         qecc = StabilizerCode("4_2_2")
         res = tailor_multiple_logical_gates(qecc, conn, [0, 1, 121], 2)
         self.assertEqual(len(res["Gates"]), 3)
-        self.assertEqual(
-            Circuit(res["Gates"][0]["Circuit"]).two_qubit_gate_count(), 0)
-        self.assertEqual(
-            Circuit(res["Gates"][1]["Circuit"]).two_qubit_gate_count(), 4)
-        self.assertEqual(
-            Circuit(res["Gates"][121]["Circuit"]).two_qubit_gate_count(), 3)
+        self.assertEqual(res["Gates"][0]["Circuit"].two_qubit_gate_count(), 0)
+        self.assertEqual(res["Gates"][1]["Circuit"].two_qubit_gate_count(), 4)
+        self.assertEqual(res["Gates"][121]["Circuit"].two_qubit_gate_count(), 3)
+
+    def test_save_load_results(self):
+        conn = Connectivity("circular", num_qubits=4)
+        qecc = StabilizerCode("4_2_2")
+        res = tailor_multiple_logical_gates(qecc, conn, [0, 1, 121], 2)
+        with TemporaryDirectory() as tmp_dir:
+            filepath = os.path.join(tmp_dir, "results.json")
+            save_results_dictionary(res, filepath)
+            res_loaded = load_results_dictionary(filepath)
+        self.assertEqual(res_loaded["Gates"][0]["Circuit"].two_qubit_gate_count(),
+                         res["Gates"][0]["Circuit"].two_qubit_gate_count())
+        self.assertEqual(res_loaded["Gates"][1]["Circuit"].two_qubit_gate_count(),
+                         res["Gates"][1]["Circuit"].two_qubit_gate_count())
+        self.assertEqual(res_loaded["Gates"][121]["Circuit"].two_qubit_gate_count(),
+                         res["Gates"][121]["Circuit"].two_qubit_gate_count())
+        self.assertEqual(res_loaded["Meta"]["Number CZ layers"], 2)
+        self.assertIsInstance(res_loaded["Meta"]["Connectivity"], Connectivity)
+        self.assertIsInstance(res_loaded["Meta"]["Code"], StabilizerCode)
+        self.assertEqual(res_loaded["Meta"]["Connectivity"].num_qubits, 4)
+        self.assertEqual(res_loaded["Meta"]["Code"].k, 2)

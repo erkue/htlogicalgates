@@ -165,7 +165,7 @@ class Circuit:
                    {"init_string": str},
                    {"init_string": str, "num_qubits": int}]
         i, a = _argument_assignment(
-            options, "Connectivity()", *args, **kwargs)
+            options, "Circuit()", *args, **kwargs)
         if i == 0:
             self._num_qubits = a["num_qubits"]
             self._gates: List[Gate] = []
