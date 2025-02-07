@@ -12,6 +12,7 @@ finally:
     _has_qiskit = True
 
 from .symplectic_rep.clifford_gate import Clifford
+from .symplectic_rep.helper import matrix_rank
 from ._utility import _argument_assignment, MissingOptionalLibraryError
 
 # Identical to stim circuit language
@@ -53,6 +54,11 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         assert (len(qubits) == 2)
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[1]] = m[qubits[1]+n, qubits[0]] = 1
+        return Clifford(m)
+    if op == Operation.CX:
+        assert (len(qubits) == 2)
+        m = np.identity(2*n, dtype=np.int32)
+        m[qubits[1], qubits[0]] = m[qubits[0]+n, qubits[1]+n] = 1
         return Clifford(m)
     if op == Operation.SWAP:
         assert (len(qubits) == 2)
@@ -163,7 +169,8 @@ class Circuit:
     def __init__(self, *args, **kwargs):
         options = [{"num_qubits": int},
                    {"init_string": str},
-                   {"init_string": str, "num_qubits": int}]
+                   {"init_string": str, "num_qubits": int},
+                   {"cliff": Clifford}]
         i, a = _argument_assignment(
             options, "Circuit()", *args, **kwargs)
         if i == 0:
@@ -199,6 +206,26 @@ class Circuit:
                         f"Circuit is defined on at least '{m}' qubits but only '{a['num_qubits']}' were given")
             else:
                 self._num_qubits = m
+        elif i == 3:
+            #from <https://arxiv.org/pdf/quant-ph/0406196> Theorem 8
+            cliff: Clifford = a["cliff"]
+            self._num_qubits = cliff.num_qubits
+            self._gates: List[Gate] = []
+            n = cliff.num_qubits
+
+            ### Step 1
+            get_rank = lambda x: matrix_rank(x.symplectic_matrix[0:n,n:2*n])
+            prev_rank = get_rank(cliff)
+            for i in range(n):
+                h = Circuit("H " + str(i), num_qubits=n).to_clifford()
+                if (new_rank := get_rank(cliff@h)) > prev_rank:
+                    cliff = cliff@h
+                    self.h(i)
+                    prev_rank = new_rank
+
+            ### Step 2
+            pass
+            raise NotImplementedError()
 
     def h(self, qubit: int):
         """
@@ -589,7 +616,3 @@ class Circuit:
             if paulis[i + o2] == 1:
                 circ.append((Operation.X, [i]))
         return circ
-
-    @staticmethod
-    def decompose_clifford(clifford: Clifford) -> Circuit:
-        raise NotImplementedError()
