@@ -15,9 +15,7 @@ class TestCircuit(unittest.TestCase):
             cliff = Clifford(c_id, p_id, n)
             circ = Circuit(cliff)
             cliff_compare = circ.to_clifford()
-            self.assertTrue(np.all(cliff.symplectic_matrix ==
-                            cliff_compare.symplectic_matrix))
-            self.assertTrue(np.all(cliff.phase == cliff_compare.phase))
+            self.assertTrue(cliff == cliff_compare)
 
     def test_empty_lines_string(self):
         c = Circuit("H 0\n\nH 1")

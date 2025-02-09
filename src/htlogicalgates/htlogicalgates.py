@@ -235,12 +235,10 @@ def tailor_multiple_logical_gates(
                                 "Runtime": gate_finder.get_runtime()}
         if (num + 1) % save_every == 0:
             if output_file != "":
-                with open(output_file, 'w') as file:
-                    json.dump(stor, file)
+                save_results_dictionary(stor, output_file)
     stor["Meta"]["Ended"] = str(datetime.now())
     if output_file != "":
-        with open(output_file, 'w') as file:
-            json.dump(stor, file)
+        save_results_dictionary(stor, output_file)
     return stor
 
 def save_results_dictionary(results: Dict, filepath: str):
