@@ -25,6 +25,23 @@ class TestHelper(unittest.TestCase):
         arr = pauli_string_to_list("x0 X2 z1 X2 Y3", 4)
         np.testing.assert_array_equal([1, 0, 0, 1, 0, 1, 0, 1], arr)
 
+    def test_AMG_decomposition(self):
+        A = np.array([[1, 0, 1, 1],
+                      [0, 1, 0, 0],
+                      [1, 0, 0, 0],
+                      [1, 0, 0, 1]])
+        M, G = get_AMG_decomposition(A)
+        M_comp = np.array([[1, 0, 0, 0],
+                           [0, 1, 0, 0],
+                           [1, 0, 1, 0],
+                           [1, 0, 1, 1],])
+        G_comp = np.array([[0, 0, 0, 0],
+                           [0, 0, 0, 0],
+                           [0, 0, 0, 0],
+                           [0, 0, 0, 0],])
+        np.testing.assert_equal(M, M_comp)
+        np.testing.assert_equal(G, G_comp)
+
 
 class TestCliffordGate(unittest.TestCase):
     def test_constructor(self):

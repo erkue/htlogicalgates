@@ -12,7 +12,7 @@ finally:
     _has_qiskit = True
 
 from .symplectic_rep.clifford_gate import Clifford
-from .symplectic_rep.helper import matrix_rank
+from .symplectic_rep.helper import matrix_rank, get_AMG_decomposition
 from ._utility import _argument_assignment, MissingOptionalLibraryError
 
 # Identical to stim circuit language
@@ -166,6 +166,19 @@ class Circuit:
         """
         pass
 
+    @overload
+    def __init__(self, cliff: Clifford):
+        """
+        Construct a circuit from a Clifford gate using the algorithm
+        from <https://arxiv.org/pdf/quant-ph/0406196>.
+
+        Parameters
+        ----------
+        cliff: Clifford
+            Clifford element to create a circuit from.
+        """
+        pass
+
     def __init__(self, *args, **kwargs):
         options = [{"num_qubits": int},
                    {"init_string": str},
@@ -207,25 +220,108 @@ class Circuit:
             else:
                 self._num_qubits = m
         elif i == 3:
-            #from <https://arxiv.org/pdf/quant-ph/0406196> Theorem 8
+            # from <https://arxiv.org/pdf/quant-ph/0406196> Theorem 8
             cliff: Clifford = a["cliff"]
             self._num_qubits = cliff.num_qubits
             self._gates: List[Gate] = []
             n = cliff.num_qubits
 
-            ### Step 1
-            get_rank = lambda x: matrix_rank(x.symplectic_matrix[0:n,n:2*n])
+            # Step 1
+            def get_rank(x): return matrix_rank(
+                x.symplectic_matrix[0:n, n:2*n])
             prev_rank = get_rank(cliff)
             for i in range(n):
-                h = Circuit("H " + str(i), num_qubits=n).to_clifford()
-                if (new_rank := get_rank(cliff@h)) > prev_rank:
-                    cliff = cliff@h
-                    self.h(i)
+                h = gate_to_clifford(Operation.H, [i], n)
+                if (new_rank := get_rank(h@cliff)) > prev_rank:
+                    cliff = h@cliff
+                    self.insert(0, (Operation.H, [i]))
                     prev_rank = new_rank
 
-            ### Step 2
-            pass
-            raise NotImplementedError()
+            # Step 2
+            for i in range(n):
+                if cliff.symplectic_matrix[0:n, n:2*n][i, i] % 2 == 0:
+                    for j in range(i+1, n):
+                        if cliff.symplectic_matrix[0:n, n:2*n][j, i] % 2 == 1:
+                            cliff = gate_to_clifford(
+                                Operation.CX, [j, i], n)@cliff
+                            self.insert(0, (Operation.CX, [j, i]))
+                            break
+                for j in range(i+1, n):
+                    if cliff.symplectic_matrix[0:n, n:2*n][j, i] % 2 == 1:
+                        cliff = gate_to_clifford(Operation.CX, [i, j], n)@cliff
+                        self.insert(0, (Operation.CX, [i, j]))
+            for i in reversed(range(n)):
+                for j in range(0, i):
+                    if cliff.symplectic_matrix[0:n, n:2*n][j, i] % 2 == 1:
+                        cliff = gate_to_clifford(Operation.CX, [i, j], n)@cliff
+                        self.insert(0, (Operation.CX, [i, j]))
+
+            # Step 3
+            M, G = get_AMG_decomposition(cliff.symplectic_matrix[n:2*n, n:2*n])
+            for i in range(n):
+                if G[i, i] % 2 == 1:
+                    cliff = gate_to_clifford(Operation.S, [i], n)@cliff
+                    self.insert(0, (Operation.S, [i]))
+
+            # Step 4
+            for i in range(n):
+                for j in range(0, i):
+                    if M[i, j] % 2 == 1:
+                        cliff = gate_to_clifford(Operation.CX, [i, j], n)@cliff
+                        self.insert(0, (Operation.CX, [i, j]))
+
+            # Step 5
+            for i in range(n):
+                cliff = gate_to_clifford(Operation.S, [i], n)@cliff
+                self.insert(0, (Operation.S, [i]))
+
+            # Step 6
+            for i in reversed(range(n)):
+                for j in range(0, i):
+                    if cliff.symplectic_matrix[:n, n:2*n][j, i]:
+                        cliff = gate_to_clifford(Operation.CX, [i, j], n)@cliff
+                        self.insert(0, (Operation.CX, [i, j]))
+
+            # Step 7
+            for i in range(n):
+                cliff = gate_to_clifford(Operation.H, [i], n)@cliff
+                self.insert(0, (Operation.H, [i]))
+
+            # Step 8
+            M, G = get_AMG_decomposition(cliff.symplectic_matrix[n:2*n, :n])
+            for i in range(n):
+                if G[i, i] % 2 == 1:
+                    cliff = gate_to_clifford(Operation.S, [i], n)@cliff
+                    self.insert(0, (Operation.S, [i]))
+
+            # Step 9
+            for i in range(n):
+                for j in range(0, i):
+                    if M[i, j] % 2 == 1:
+                        cliff = gate_to_clifford(Operation.CX, [i, j], n)@cliff
+                        self.insert(0, (Operation.CX, [i, j]))
+
+            # Step 10
+            for i in range(n):
+                cliff = gate_to_clifford(Operation.S, [i], n)@cliff
+                self.insert(0, (Operation.S, [i]))
+
+            # Step 11
+            for i in reversed(range(n)):
+                for j in range(0, i):
+                    if M[i, j] % 2 == 1:
+                        cliff = gate_to_clifford(Operation.CX, [i, j], n)@cliff
+                        self.insert(0, (Operation.CX, [i, j]))
+
+            # Fix Pauli frame
+            circuit_clifford = self.to_clifford()
+            target_clifford = a["cliff"]
+            phases = (circuit_clifford.phase + target_clifford.phase) % 2
+            for i in range(n):
+                if phases[i] == 1:
+                    self.insert(0, (Operation.Z, [i]))
+                if phases[i + n] % 2 == 1:
+                    self.insert(0, (Operation.X, [i]))
 
     def h(self, qubit: int):
         """

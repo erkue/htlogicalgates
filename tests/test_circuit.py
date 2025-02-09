@@ -10,6 +10,15 @@ class TestCircuit(unittest.TestCase):
         c = Circuit("H 2")
         self.assertEqual(c.num_qubits, 3)
 
+    def test_clifford_to_circuit(self):
+        for c_id, p_id, n in [(701, 23, 3), (800923, 421, 5), (32112321, 5344, 7)]:
+            cliff = Clifford(c_id, p_id, n)
+            circ = Circuit(cliff)
+            cliff_compare = circ.to_clifford()
+            self.assertTrue(np.all(cliff.symplectic_matrix ==
+                            cliff_compare.symplectic_matrix))
+            self.assertTrue(np.all(cliff.phase == cliff_compare.phase))
+
     def test_empty_lines_string(self):
         c = Circuit("H 0\n\nH 1")
         self.assertEqual(c.gate_count(), 2)
