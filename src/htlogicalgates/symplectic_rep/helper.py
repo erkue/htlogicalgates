@@ -99,7 +99,8 @@ def max_index_of_pauli(s: str) -> int:
 def int_to_bitarray(i: int, l: int) -> NDArray:
     bitstring = (r"{0:"+str(l)+r"b}").format(i)
     if l < len(bitstring):
-        raise ValueError(f"Integer '{str(i)}' too large for bitstring of length '{str(l)}'")
+        raise ValueError(
+            f"Integer '{str(i)}' too large for bitstring of length '{str(l)}'")
     return np.array([1 if j == "1" else 0 for j in bitstring], dtype=np.int32)
 
 
@@ -141,6 +142,17 @@ def get_omega_matrix(n: int) -> NDArray:
 @cache
 def get_u_bar_matrix(n: int) -> NDArray:
     return expand_mat_once(get_u_matrix(n))
+
+
+def get_AMG_decomposition(A) -> Tuple[NDArray, NDArray]:
+    # from <https://arxiv.org/pdf/quant-ph/0406196> Lemma 7
+    n = len(A)
+    M = np.eye(n, n, dtype=np.int32)
+    G = np.zeros((n, n), dtype=np.int32)
+    for i in range(n):
+        for j in range(i):
+            M[i, j] = (A[i, j] + np.dot(M[i, :j], M[j, :j]))%2
+    return M, (M@M.T + A)%2
 
 
 class LinSolver:
