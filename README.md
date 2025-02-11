@@ -1,5 +1,10 @@
 # Hardware-Tailored Logical Gates
+![PyPI - Version](https://img.shields.io/pypi/v/htlogicalgates)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/erkue/htlogicalgates/blob/main/LICENSE)
 [![Tests](https://github.com/erkue/htlogicalgates/actions/workflows/run-tests.yml/badge.svg)](https://github.com/erkue/htlogicalgates/actions/workflows/run-tests.yml)
+[![Unitary Foundation](https://img.shields.io/badge/Supported%20By-UNITARY%20FOUNDATION-brightgreen.svg)](https://unitary.foundation)
+
+
 
 This package can be used to compile circuit implementations for **logical Clifford gates** of **quantum error-correcting codes**. The main features are:
 
