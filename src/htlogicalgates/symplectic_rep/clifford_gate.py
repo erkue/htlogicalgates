@@ -183,6 +183,13 @@ class Clifford:
             return False
         return bool(np.all(self.symplectic_matrix == other.symplectic_matrix) and np.all(self.phase == other.phase))
 
+    @staticmethod
+    def group_size_mod_pauli(num_qubits: int):
+        u = 1
+        for i in range(1, num_qubits + 1):
+            u *= 4**i - 1
+        return 2 ** (num_qubits * num_qubits) * u
+
 
 def _construct_imag_phase(m: NDArray) -> NDArray:
     return np.diag(m.T @ get_u_matrix(len(m) // 2) @ m) % 2

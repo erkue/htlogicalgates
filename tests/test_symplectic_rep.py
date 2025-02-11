@@ -66,6 +66,11 @@ class TestCliffordGate(unittest.TestCase):
         self.assertEqual(c5.pauli_int, 45)
 
 
+    def test_clifford_group_size_mod_pauli(self):
+        self.assertEqual(Clifford.group_size_mod_pauli(1), 6)
+        self.assertEqual(Clifford.group_size_mod_pauli(2), 720)
+        self.assertEqual(Clifford.group_size_mod_pauli(3), 1451520)
+
 class TestRandomSymplectic(unittest.TestCase):
     def test_symplectic_matrix(self):
         for n, i in zip(range(1, 5), [2, 355, 74329, 4234324]):
