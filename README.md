@@ -17,14 +17,18 @@ Furthermore, a valid [Gurobi](https://www.gurobi.com/) license is neccesary for 
 
 ## Installation
 
-This Python package is available on [PyPI (coming soon)]() and can be installed using `pip` via
+This Python package is available on [PyPI](https://pypi.org/project/htlogicalgates/) and can be installed using `pip` via
 
 ```
 pip install htlogicalgates
 ```
 Alternatively, you can clone this repository and include it in your project.
 
+## License 
 
+This package is distributed under the MIT License.
+
+If you want to support work like this, please cite: _our paper (tba)_
 
 ## Tutorials
 
