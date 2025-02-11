@@ -36,3 +36,8 @@ class TestCircuit(unittest.TestCase):
         c.shallow_optimize()
         self.assertLessEqual(c.gate_count(), 2)
         self.assertTrue(cliff == c.to_clifford())
+
+    def test_shallow_optimize_pauli(self):
+        c = Circuit("H 0\nZ 0")
+        c.shallow_optimize()
+        self.assertTrue(c.to_clifford() == Circuit("X 0\nH 0").to_clifford())

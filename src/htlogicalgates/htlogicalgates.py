@@ -25,7 +25,7 @@ from ._utility import MissingOptionalLibraryError
 def tailor_logical_gate(
     stab_code: StabilizerCode,
     connectivity: Connectivity,
-    logical_gate: Union[Circuit, int],
+    logical_gate: Union[Circuit, Clifford, int],
     num_cz_layers: int,
     time_limit: float = -1,
     log_to_console: bool = False,
@@ -44,8 +44,8 @@ def tailor_logical_gate(
         Stabilizer code for which a logical circuit should be tailored.
     connectivity: Connectivity
         Connectivity to tailor the circuit to.
-    logical_gate: Union[Circuit, int]
-        Representation of the logical gate in form of a circuit or integer.
+    logical_gate: Union[Circuit, Clifford, int]
+        Representation of the logical gate in form of a circuit, Clifford or integer.
     num_cz_layers: int
         Number of controlled-Z gate layers for the ansatz with which the circuit should
         be compiled.
@@ -83,11 +83,12 @@ def tailor_logical_gate(
     stabilizer_matrix = stab_code.get_e_matrix()
     if not isinstance(connectivity, Connectivity):
         raise TypeError("Create connectivity object via function 'get_conn'")
-    if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int):
-        raise TypeError("Expected a `Circuit` object for `logical_gate`")
+    if not isinstance(logical_gate, Circuit) and not isinstance(logical_gate, int) and not isinstance(logical_gate, Clifford):
+        raise TypeError("Wrong type for argument `logical_gate`")
 
     if isinstance(logical_gate, Circuit):
         logical_gate = logical_gate.to_clifford()
+    if isinstance(logical_gate, Clifford):
         add_phases = np.roll(logical_gate.phase,
                              len(stabilizer_matrix[0]) - len(stabilizer_matrix[:, 0]) // 2)
         logical_gate = logical_gate.symplectic_matrix
@@ -111,9 +112,8 @@ def tailor_logical_gate(
     gate_finder.find_gate()
     if gate_finder.has_solution():
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
-            print(add_phases)
             ps = Circuit.from_paulis(
-                sum([stabilizer_matrix[:, i] for i in np.nonzero(add_phases)]))
+                sum([stabilizer_matrix[:, i] for i in np.nonzero(add_phases)[0]]))
             circuit = ps + gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
@@ -385,7 +385,7 @@ class GateFinder:
         circs[1::2] = [Circuit.from_CZL(i) for i in cliffs[1::2][::-1]]
 
         for c in cliffs[1:]:
-            tot_cliff = c @ tot_cliff
+            tot_cliff = tot_cliff @ c
         if self.Perms[0] != None:
             self.Perms[0] = Clifford(
                 self.env.evaluate_matrix(self.Perms[0]))
