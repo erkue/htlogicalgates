@@ -8,7 +8,7 @@ version = "0.6.0"
 description = "Find circuit implementations for logical gates of QECCs."
 readme = "README.md"
 requires-python = ">=3.9"
-authors = [{ name = "erkue"}]
+authors = [{ name = "erkue" }]
 license = { file = "LICENSE" }
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -20,17 +20,17 @@ classifiers = [
 ]
 keywords = ["quantum information", "quantum error correction", "quantum circuit", "logical gates"]
 dependencies = [
-    "gurobipy>=11.0",
-    "numpy>=1.23",
-    "qsalto>=0.2"
+    "gurobipy >= 11.0",
+    "numpy >= 1.23",
+    "qsalto >= 0.2"
 ]
 
 [project.optional-dependencies]
 tqdm = [
-  "tqdm>=4.0"
+  "tqdm >= 4.0"
 ]
 qiskit = [
-  "qiskit>=1.0"
+  "qiskit >= 1.0"
 ]
 
 
