@@ -255,6 +255,21 @@ class StabilizerCode:
 
 
 def reduce_to_stabilizer_generators(stabilizers: List[str]) -> List[str]:
+    """
+    Reduces a list of stabilizers to a set of independent generators.
+
+    Parameters
+    ----------
+    stabilizers
+        List of stabilizers to reduce.
+
+    Examples
+    ----------
+    >>> stabilizers = ["X0 X1 X2 X3", "Z0 Z1 Z2 Z3", "Y0 Y1 Y2 Y3"]
+    >>> new_stabilizers = reduce_to_stabilizer_generators(stabilizers)
+    >>> print(new_stabilizers)
+    ['Z0 Z1 Z2 Z3', 'Y0 Y1 Y2 Y3']
+    """
     num_qubits = max([max_index_of_pauli(i) for i in stabilizers])
     stabs = np.array([pauli_string_to_list(i, num_qubits)
                       for i in stabilizers], dtype=np.int32)
