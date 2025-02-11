@@ -11,28 +11,28 @@ from .integer_symplectic import symplectic_matrix, symplectic_matrix_inverse
 
 class Clifford:
     @overload
-    def __init__(self, clifford_int: int, num_qubits: int):
+    def __init__(self, id: int, num_qubits: int):
         """
         Constructs a Clifford gate without Paulis by its integer representation.
 
         Parameters
         ----------
-        clifford_int: int 
-            Integer representing the Clifford part modulo Pauli gates.
+        id: int 
+            Unique clifford id representing the Clifford part modulo Pauli gates.
         num_qubits: int
             Number of qubits the Clifford is defined on.
         """
         pass
 
     @overload
-    def __init__(self, clifford_int: int, pauli_int: int, num_qubits: int):
+    def __init__(self, id: int, pauli_int: int, num_qubits: int):
         """
         Constructs a Clifford gate by its integer representation.
 
         Parameters
         ----------
-        clifford_int: int
-            Integer representing the Clifford part modulo Pauli gates.
+        id: int
+            Unique clifford id representing the Clifford part modulo Pauli gates.
         pauli_int: int
             Integer representing the Pauli part of the Clifford gate.
         num_qubits: int
@@ -67,18 +67,18 @@ class Clifford:
         pass
 
     def __init__(self, *args, **kwargs):
-        options = [{"clifford_int": int, "pauli_int": int, "num_qubits": int},
-                   {"clifford_int": int, "num_qubits": int},
+        options = [{"id": int, "pauli_int": int, "num_qubits": int},
+                   {"id": int, "num_qubits": int},
                    {"matrix": np.ndarray},
                    {"matrix": np.ndarray, "phase": np.ndarray},
                    {"matrix": np.ndarray, "phase": np.ndarray, "extended": bool}]
         i, a = _argument_assignment(
             options, "Clifford()", *args, **kwargs)
         if i == 0:
-            mat = symplectic_matrix(a["clifford_int"], a["num_qubits"])
+            mat = symplectic_matrix(a["id"], a["num_qubits"])
             phase = int_to_bitarray(a["pauli_int"], 2*a["num_qubits"])
         if i == 1:
-            mat = symplectic_matrix(a["clifford_int"], a["num_qubits"])
+            mat = symplectic_matrix(a["id"], a["num_qubits"])
             phase = np.zeros(2*a["num_qubits"], dtype=np.int32)
         if i == 2 or i == 3:
             mat = a["matrix"]
@@ -102,7 +102,7 @@ class Clifford:
         self._M = len(self._phase) - 1
 
     @property
-    def clifford_int(self) -> int:
+    def id(self) -> int:
         """
         Returns an integer identifying the pure Clifford part of the Clifford gate.
 

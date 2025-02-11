@@ -57,12 +57,12 @@ class TestCliffordGate(unittest.TestCase):
         c4 = Clifford(me, pe, extended=True)
         for c in [c1, c2, c3, c4]:
             self.assertTrue(c0 == c)
-        self.assertEqual(c0.clifford_int, 0)
+        self.assertEqual(c0.id, 0)
         self.assertEqual(c0.pauli_int, 0)
         self.assertTrue(Clifford(32, 2), Clifford(32, 0, 2))
         c5 = Clifford(3432, 45, 3)
         self.assertEqual(c5.num_qubits, 3)
-        self.assertEqual(c5.clifford_int, 3432)
+        self.assertEqual(c5.id, 3432)
         self.assertEqual(c5.pauli_int, 45)
 
 
