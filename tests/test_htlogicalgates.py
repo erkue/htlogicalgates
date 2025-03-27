@@ -46,6 +46,14 @@ class TestTailorLogicalGate(unittest.TestCase):
         self.assertEqual(res["Gates"][1]["Circuit"].two_qubit_gate_count(), 4)
         self.assertEqual(res["Gates"][121]
                          ["Circuit"].two_qubit_gate_count(), 3)
+        
+    def test_tailor_optimize_h_count(self):
+        conn = Connectivity("circular", num_qubits=4)
+        qecc = StabilizerCode("4_2_2")
+        log_gate = Circuit("H 0", 2)
+        circ, status = tailor_logical_gate(qecc, conn, log_gate, 2,
+                                           cost_function=CostFunction.h_count)
+        self.assertEqual(status, "Optimal")
 
 
 class TestSaveLoadResults(unittest.TestCase):
