@@ -1,5 +1,6 @@
 from typing import Union, Optional, Iterable, Dict, Any
 from datetime import datetime
+from enum import Enum
 import json
 import numpy as np
 from numpy.typing import NDArray
@@ -22,6 +23,11 @@ from .stabilizercode import StabilizerCode
 from ._utility import MissingOptionalLibraryError
 
 
+class CostFunction(Enum):
+    cz_count = "cz_count"
+    h_count = "h_count"
+
+
 def tailor_logical_gate(
     stab_code: StabilizerCode,
     connectivity: Connectivity,
@@ -32,7 +38,8 @@ def tailor_logical_gate(
     log_file: str = "",
     optimize: bool = True,
     gurobi: Dict = {},
-    perm: Tuple[bool, bool] = (False, False)
+    perm: Tuple[bool, bool] = (False, False),
+    cost_function: CostFunction = CostFunction.cz_count
 ) -> Tuple[Optional[Circuit], str]:
     """
     Finds a circuit implementation for a Clifford gate of a given quantum
@@ -61,9 +68,12 @@ def tailor_logical_gate(
         Whether to collapse single-qubit Clifford gates after compilation, by default True.
     gurobi: Dict, optional
         Arguments to pass to the Gurobi optimizer, by default {}.
-    perm: Tuple[bool, bool]
-       If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
+    perm: Tuple[bool, bool], optional
+        If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
         by default [False, False].
+    cost_function: CostFunction, optional
+        The optimization metric used to evaluate and optimize circuits,
+        by default CostFunction.cz_count.
 
     Returns
     -------
@@ -108,7 +118,7 @@ def tailor_logical_gate(
     if time_limit >= 0:
         gate_finder.set_time_limit(time_limit)
     gate_finder.set_logical_gate(logical_gate)
-    gate_finder.set_target_function()
+    gate_finder.set_target_function(cost_function)
     gate_finder.find_gate()
     if gate_finder.has_solution():
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
@@ -139,7 +149,8 @@ def tailor_multiple_logical_gates(
     save_every: int = 1,
     optimize: bool = True,
     gurobi: Dict = {},
-    perm: Tuple[bool, bool] = (False, False)
+    perm: Tuple[bool, bool] = (False, False),
+    cost_function: CostFunction = CostFunction.cz_count
 ) -> Dict:
     """
     Finds circuit implementations for multiple Clifford gates of a given quantum
@@ -177,8 +188,12 @@ def tailor_multiple_logical_gates(
     gurobi: Dict, optional
         Arguments to pass to the Gurobi optimizer, by default {}.
     perm: Tuple[bool, bool]
-       If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
+        If true, a permutation layer is added to the start (index 0) or end (index 1) of the circuit,
         by default [False, False].
+    cost_function: CostFunction, optional
+        The optimization metric used to evaluate and optimize circuits,
+        by default CostFunction.cz_count.
+
 
     Returns
     -------
@@ -208,7 +223,7 @@ def tailor_multiple_logical_gates(
                              False, log_file, gurobi, perm)
     if time_limit >= 0:
         gate_finder.set_time_limit(time_limit)
-    gate_finder.set_target_function()
+    gate_finder.set_target_function(cost_function)
     stor = {
         "Meta": {
             "Connectivity": connectivity,
@@ -241,6 +256,7 @@ def tailor_multiple_logical_gates(
         save_results_dictionary(stor, output_file)
     return stor
 
+
 def save_results_dictionary(results: Dict, filepath: str):
     """
     Saves the result dictionary returned by `tailor_multiple_logical_gates`
@@ -259,7 +275,7 @@ def save_results_dictionary(results: Dict, filepath: str):
     if (c := results.get("Meta", {}).get("Code", "N/A")) != "N/A":
         results["Meta"]["Code"] = c.get_e_matrix().tolist()
     for key, val in results.get("Gates", {}).items():
-        circ = val.get("Circuit", None) 
+        circ = val.get("Circuit", None)
         if isinstance(circ, Circuit):
             results["Gates"][key]["Circuit"] = circ.__str__()
     with open(filepath, 'w') as file:
@@ -349,12 +365,19 @@ class GateFinder:
         self.env.set_many_predef_var(logical_gate % 2, self.LOG_IDS)
         self.active_gate = True
 
-    def set_target_function(self):
+    def set_target_function(self, cost_function: CostFunction = CostFunction.cz_count):
         e = Expression.create_const(0)
-        for czl in self.CZLs:
-            for i in range(self.n):
-                for j in range(i+1, self.n):
-                    e = e + czl[self.n+i, j]
+        if cost_function == CostFunction.cz_count:
+            for czl in self.CZLs:
+                for i in range(self.n):
+                    for j in range(i+1, self.n):
+                        e = e + czl[self.n+i, j]
+        elif cost_function == CostFunction.h_count:
+            for scl in self.SCLs:
+                for i in range(self.n):
+                    e = e + scl[i, self.n+i]
+        else:
+            raise ValueError(f"Unsupported cost function '{cost_function}'")
         self.env.set_target_function(e)
 
     def has_solution(self) -> bool:
