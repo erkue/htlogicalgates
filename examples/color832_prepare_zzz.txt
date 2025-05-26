@@ -1,0 +1,8 @@
+RZ 0 1 2 3 4 5 6 7
+RX 8
+RZ 9
+CX 8 9 8 0 8 1 8 2 8 3 8 4 8 5 8 6 8 7 8 9
+MX 8
+MZ 9
+DETECTOR rec[-1]
+CZ rec[-2] 0

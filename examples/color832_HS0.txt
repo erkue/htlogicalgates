@@ -1,0 +1,30 @@
+RX 8
+CX 8 4
+CY 8 7
+
+# Unitary circuit start
+
+C_XYZ 6
+C_ZYX 4
+C_XYZ 7
+S_DAG 5
+CZ 4 6 5 7
+C_ZYX 4 5
+CZ 5 4
+C_ZYX 4
+H 5
+S_DAG 1
+Z 1
+CZ 4 6 5 7 1 5
+C_ZYX 6 7
+H 4
+X 4
+Z 5
+CZ 8 1 8 4
+
+# Unitary circuit end
+
+CX 8 5
+CY 8 6
+MX 8
+DETECTOR rec[-1]

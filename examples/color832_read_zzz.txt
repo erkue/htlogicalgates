@@ -1,0 +1,15 @@
+RX 8
+RZ 9
+CX 8 9 8 0 8 1 8 2 8 3 8 4 8 5 8 6 8 7 8 9
+MX 8
+MZ 9
+MZ 0 1 2 3 4 5 6 7
+OBSERVABLE_INCLUDE(0) rec[-8] rec[-4]
+OBSERVABLE_INCLUDE(1) rec[-8] rec[-6]
+OBSERVABLE_INCLUDE(2) rec[-8] rec[-7]
+DETECTOR rec[-9]
+DETECTOR rec[-10]
+DETECTOR rec[-8] rec[-7] rec[-6] rec[-5]
+DETECTOR rec[-8] rec[-7] rec[-4] rec[-3]
+DETECTOR rec[-8] rec[-6] rec[-4] rec[-2]
+DETECTOR rec[-8] rec[-7] rec[-6] rec[-5] rec[-4] rec[-3] rec[-2] rec[-1]

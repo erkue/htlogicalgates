@@ -1,0 +1,12 @@
+# From Fig.3 in https://doi.org/10.1103/PhysRevA.109.062438
+RX 0
+RZ 1 2 3 4
+RX 5 6 7 8 9 10
+CX 0 1 8 1 6 1 7 1 8 1
+CX 0 2 9 2 5 2 7 2 9 2
+CX 0 3 10 3 5 3 6 3 10 3
+CX 5 4 10 4 6 4 7 4 10 4
+MX 8 9 10
+DETECTOR rec[-1]
+DETECTOR rec[-2]
+DETECTOR rec[-3]

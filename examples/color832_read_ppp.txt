@@ -1,0 +1,20 @@
+# Time-reversed circuit of Fig.3 in https://doi.org/10.1103/PhysRevA.109.062438
+RX 8 9 10
+CX 10 4 7 4 6 4 10 4 5 4
+CX 10 3 6 3 5 3 10 3 0 3
+CX 9 2 7 2 5 2 9 2 0 2
+CX 8 1 7 1 6 1 8 1 0 1
+MX 0
+MZ 1 2 3 4
+MX 5 6 7 8 9 10
+DETECTOR rec[-1]
+DETECTOR rec[-2]
+DETECTOR rec[-3]
+DETECTOR rec[-10] rec[-9] rec[-8]
+DETECTOR rec[-10] rec[-7]
+DETECTOR rec[-9] rec[-7]
+DETECTOR rec[-10] rec[-9] rec[-8] rec[-7]
+DETECTOR rec[-11] rec[-6] rec[-5] rec[-4]
+OBSERVABLE_INCLUDE(0) rec[-11]
+OBSERVABLE_INCLUDE(1) rec[-11] rec[-6]
+OBSERVABLE_INCLUDE(2) rec[-11] rec[-5]
