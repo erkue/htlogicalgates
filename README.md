@@ -6,7 +6,7 @@
 
 
 
-This package can be used to compile circuit implementations for **logical Clifford gates** of **quantum error-correcting codes** It is based on [arXiv:2505.20261](https://arxiv.org/abs/2505.20261). The main features are:
+This package can be used to compile circuit implementations for **logical Clifford gates** of **quantum error-correcting codes**. It is based on [arXiv:2505.20261](https://arxiv.org/abs/2505.20261). The main features are:
 
 - works for **every stabilizer code** (runtime increases with code size),
 - works for **every logical Clifford gate**, and
