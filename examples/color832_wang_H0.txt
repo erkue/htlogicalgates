@@ -1,4 +1,4 @@
-# Circuit from https://arxiv.org/abs/2309.09893 (slightly adapted)
+# A corrected version of the circuit from https://arxiv.org/abs/2309.09893, Fig. 15
 
 RX 8
 RZ 9
@@ -6,7 +6,6 @@ RX 10
 RZ 11
 CX 8 9 10 11
 
-#CX 0 8 2 9 4 10 6 11
 CX 0 8 2 10 4 9 6 11
 
 RZ 12
@@ -15,10 +14,10 @@ RX 14
 RX 15
 CX 13 12 13 0 13 1 13 2 13 3 13 12
 CZ 14 8 15 9 14 10 15 11
-MZ 12 #-10
-MX 13 #-9
-MX 14 #-8
-MX 15 #-7
+MZ 12
+MX 13
+MX 14
+MX 15
 CX rec[-2] 10 rec[-2] 11
 
 H 8 9 10 11
@@ -26,21 +25,20 @@ H 8 9 10 11
 RZ 12
 RX 13
 CX 13 12 13 4 13 5 13 6 13 7 13 12
-MZ 12 #-6
-MX 13 #-5
+MZ 12
+MX 13
 CZ rec[-1] 0 rec[-1] 4
 
-#CX 0 8 2 10 4 9 6 11
 CX 0 8 2 9 4 10 6 11
 
-MZ 8 #-4
-MZ 9 #-3
-MZ 10 #-2
-MZ 11 #-1
-CX rec[-4] 0 rec[-4] 1 rec[-4] 2 rec[-4] 3 #Should be rec[-4]
-CX rec[-2] 4 rec[-2] 5 rec[-2] 6 rec[-2] 7 #Should be rec[-3]
+MZ 8
+MZ 9
+MZ 10
+MZ 11
+CX rec[-4] 0 rec[-4] 1 rec[-4] 2 rec[-4] 3
+CX rec[-2] 4 rec[-2] 5 rec[-2] 6 rec[-2] 7
 
-CX rec[-5] 4 rec[-5] 5 rec[-5] 6 rec[-5] 7#Häää?
+CX rec[-5] 4 rec[-5] 5 rec[-5] 6 rec[-5] 7
 
 DETECTOR rec[-10]
 DETECTOR rec[-6]

@@ -1,9 +1,9 @@
-# Circuit from https://arxiv.org/abs/2309.09893 (slightly adapted)
+# A corrected version of the circuit from https://arxiv.org/abs/2309.09893, Fig. 13
 
 RX 8
 RZ 9 10 11
 CX 8 9 9 10 10 11 8 14 11 14
-MZ 14 #-13
+MZ 14
 
 CX 0 8 2 10 4 9 6 11
 
@@ -12,10 +12,10 @@ RX 13
 RX 14
 RZ 15
 CX 13 12 14 15 13 0 14 4 13 1 14 5 13 2 14 6 13 3 14 7 13 12 14 15
-MZ 12 #-12
-MX 13 #-11
-MX 14 #Should be MZ #-10
-MZ 15 #Should be MX #-9
+MZ 12
+MX 13
+MX 14
+MZ 15
 CZ rec[-3] 0 rec[-3] 4
 
 RZ 12
@@ -23,25 +23,18 @@ RX 13
 RX 14
 RZ 15
 CX 13 12 14 15 13 0 14 2 13 1 14 3 13 4 14 6 13 5 14 7 13 12 14 15
-MZ 12 #-8
-MX 13 #-7
-MX 14 #Should be MZ #-6
-MZ 15 #Should be MX #-5
+MZ 12 
+MX 13
+MX 14
+MZ 15
 CZ rec[-3] 0 rec[-3] 2
 
 H 8 9 10 11
 
 CX 0 8 2 9 4 10 6 11
 
-MZ 8 9 10 11 #-4-3-2-1
+MZ 8 9 10 11
 
-####CX rec[-4] 0 rec[-4] 1 rec[-4] 4 rec[-4] 5
-####CX rec[-4] 0 rec[-4] 1 rec[-4] 2 rec[-4] 3
-####CX rec[-3] 2 rec[-3] 3 rec[-3] 6 rec[-3] 7
-####CX rec[-2] 4 rec[-2] 5 rec[-2] 6 rec[-2] 7
-####
-####CX rec[-11] 4 rec[-11] 5 rec[-11] 6 rec[-11] 7
-####CX rec[-7] 0 rec[-7] 1 rec[-7] 4 rec[-7] 5
 
 CX rec[-4] 4 rec[-4] 5
 CX rec[-4] 2 rec[-4] 3
