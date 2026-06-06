@@ -1,4 +1,4 @@
-# A corrected version of the circuit from https://arxiv.org/abs/2309.09893, Fig. 13
+# A corrected version of the circuit from https://arxiv.org/abs/2309.09893, Fig.13
 
 RX 8
 RZ 9 10 11

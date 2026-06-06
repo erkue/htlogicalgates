@@ -1,4 +1,4 @@
-# From Fig.3 in https://doi.org/10.1103/PhysRevA.109.062438
+# Same circuit as in Fig.3 of https://doi.org/10.1103/PhysRevA.109.062438
 RX 0
 RZ 1 2 3 4
 RX 5 6 7 8 9 10
