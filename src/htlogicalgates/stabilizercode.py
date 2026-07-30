@@ -235,7 +235,7 @@ class StabilizerCode:
                 sle_a[0] += 1
                 continue
             stab = np.sum(stabs, axis=0) % 2
-            sle_a[np.count_nonzero(stab[:self.n] + stab[self.n])] += 1
+            sle_a[np.count_nonzero(stab[:self.n] + stab[self.n:])] += 1
         sle_b = MacWilliams(self.n) @ sle_a
         return int(np.min(np.nonzero(np.round(sle_b*2**self.k).astype(sle_a.dtype) - sle_a)))
 
