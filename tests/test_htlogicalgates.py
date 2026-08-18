@@ -10,16 +10,16 @@ class TestTailorLogicalGate(unittest.TestCase):
         conn = Connectivity("circular", num_qubits=4)
         qecc = StabilizerCode("4_2_2")
         log_gate = Circuit("H 0", 2)
-        circ, status = tailor_logical_gate(qecc, conn, log_gate, 2)
-        self.assertEqual(status, "Optimal")
+        circ, om = tailor_logical_gate(qecc, conn, log_gate, 2)
+        self.assertEqual(om.status, OptimizationStatus.OPTIMAL)
         self.assertEqual(circ.two_qubit_gate_count(), 4)
 
     def test_tailor_logical_gate_phase(self):
         conn = Connectivity("all", num_qubits=3)
         qecc = StabilizerCode("trivial", num_qubits=3)
         log_gate = Circuit("H 2\nX 0\nCZ 0 1\nCZ 0 2\nY 1\nH 0\nS 1\nCX 1 0\nY 1\nH 1\nX 2", 3).to_clifford()
-        circ, status = tailor_logical_gate(qecc, conn, log_gate, 2)
-        self.assertEqual(status, "Optimal")
+        circ, om = tailor_logical_gate(qecc, conn, log_gate, 2)
+        self.assertEqual(om.status, OptimizationStatus.OPTIMAL)
         self.assertTrue(circ.to_clifford() == log_gate)
 
     def test_tailor_logical_gate_checks(self):
@@ -51,9 +51,9 @@ class TestTailorLogicalGate(unittest.TestCase):
         conn = Connectivity("circular", num_qubits=4)
         qecc = StabilizerCode("4_2_2")
         log_gate = Circuit("H 0", 2)
-        circ, status = tailor_logical_gate(qecc, conn, log_gate, 2,
+        circ, om = tailor_logical_gate(qecc, conn, log_gate, 2,
                                            cost_function=CostFunction.h_count)
-        self.assertEqual(status, "Optimal")
+        self.assertEqual(om.status, OptimizationStatus.OPTIMAL)
 
 
 class TestSaveLoadResults(unittest.TestCase):
