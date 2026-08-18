@@ -67,15 +67,18 @@ Note that we created a `Connectivity` for $n=4$ qubits and a logical `Circuit` f
 
 Now we can pass these objects to the function `tailor_logical_gate`:
 ```py
-circ, status = htlg.tailor_logical_gate(stab_code, connectivity, logical_gate, num_cz_layers=2)
+circ, om = htlg.tailor_logical_gate(stab_code, connectivity, logical_gate, num_cz_layers=2)
 ```
 The parameter `num_cz_layers` determines the number of CZ gate layers in the ansatz circuit. Generally speaking, more CZ layers make the ansatz more expressive and can lead to circuits with less two-qubit gates in total, while increasing runtime. If you can not find a specific gate, try to increase the number of CZ gate layers.
 
-The return value `status` indicates the state of the optimization:
+The return value `om` contains metadata about the optimization. Its most important field is `om.status` which has values:
 
-- `"Optimal"` : The returned circuit is optimal in terms of two-qubit gates.
-- `"Bound {n}"` : The returned circuit is not optimal in terms of two-qubit games but there is no circuit with less than $n$ two-qubit gates.
-- `"Infeasible"` : There is no physical circuit for the given stabilizer code, connectivity, logical circuit, and number of CZ gate layer.
-- `"Time out"` : A physical circuit was not found in the given time limit.
+- `OPTIMAL`: The returned circuit is optimal in terms of two-qubit gates.
 
-If the status message is `"Optimal"` or `"Bound {n}"`, then `circ` contains the physical circuit implementation. Otherwise, it is `None`.
+- `BOUND`: The returned circuit is not necessarily optimal in terms of two-qubit games but there is no circuit with less than `om.final_bound` two-qubit gates for the given ansatz.
+
+- `INFEASIBLE`: There is no physical circuit for the given stabilizer code, connectivity, logical circuit, and number of CZ gate layer.
+
+- `TIMEOUT`: A physical circuit was not found in the given time limit.
+
+If the status message is `OPTIMAL` or `BOUND`, then `circ` contains the physical circuit implementation. Otherwise, it is `None`.
