@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .grb_math_interface import *
+from ..optimization import OptimizationMetadata, OptimizationStatus
 
 
 class Enviroment:
@@ -104,8 +105,36 @@ class Enviroment:
     def get_model(self) -> gp.Model:
         return self.model
 
-    def solve(self):
-        self.model.optimize()
+    def solve(self) -> OptimizationMetadata:
+        self.model.update()
+
+        solutions = []
+
+        model_sense = self.model.ModelSense
+        num_vars = self.model.NumVars
+        num_constr = self.model.NumConstrs + self.model.NumQConstrs + self.model.NumGenConstrs + self.model.NumSOS
+
+        def record_incubents(model: gp.Model, where: int):
+            if where != GRB.Callback.MIPSOL:
+                return
+
+            cost = float(model.cbGet(GRB.Callback.MIPSOL_OBJ))
+            incumbent = incumbent = float(model.cbGet(GRB.Callback.MIPSOL_OBJBST))
+            if model_sense * (cost - incumbent) >= 0:
+                return
+            if solutions and model_sense * (cost - solutions[-1][1]) >= 0:
+                return
+            solutions.append([float(model.cbGet(GRB.Callback.RUNTIME)), cost])
+            
+        self.model.optimize(record_incubents)
+        return OptimizationMetadata(
+            status=self.get_status(),
+            time=self.get_runtime(),
+            num_variables=int(num_vars),
+            num_constraints=int(num_constr),
+            solutions=solutions,
+            final_bound=self.get_bound()
+        )
 
     #### After solving ####
 
@@ -118,23 +147,26 @@ class Enviroment:
     def has_solution(self) -> bool:
         return self.model.SolCount > 0
 
-    def get_status(self) -> str:
+    def get_status(self) -> OptimizationStatus:
         if self.has_solution():
             if self.model.Status == GRB.OPTIMAL:
-                return "Optimal"
+                return OptimizationStatus.OPTIMAL
             else:
-                return "Bound " + str(self.model.ObjBound)
+                return OptimizationStatus.BOUND
         else:
             if self.model.Status == GRB.INFEASIBLE:
-                return "Infeasible"
+                return OptimizationStatus.INFEASIBLE
             else:
-                return "Time out"
+                return OptimizationStatus.TIMEOUT
 
     def get_runtime(self) -> float:
-        return self.model.Runtime
+        return float(self.model.Runtime)
 
     def get_work(self) -> float:
-        return self.model.Runtime
+        return float(self.model.Runtime)
+    
+    def get_bound(self) -> float:
+        return float(self.model.ObjBound)
 
     #### Internal functions ####
 

@@ -5,3 +5,4 @@ from .stabilizercode import StabilizerCode
 from .connectivity import Connectivity
 from .circuit import Circuit
 from .symplectic_rep.clifford_gate import Clifford
+from .optimization import OptimizationMetadata, OptimizationStatus

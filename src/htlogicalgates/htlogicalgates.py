@@ -21,6 +21,7 @@ from .symplectic_rep.helper import LinSolver
 from .connectivity import Connectivity
 from .stabilizercode import StabilizerCode
 from ._utility import MissingOptionalLibraryError
+from .optimization import OptimizationStatus, OptimizationMetadata
 
 
 class CostFunction(Enum):
@@ -77,15 +78,15 @@ def tailor_logical_gate(
 
     Returns
     -------
-    Tuple[Optional[Circuit], str]
-        A circuit (if one has been found) and a status message.
+    Tuple[Optional[Circuit], OptimizationMetadata]
+        A circuit (if one has been found) and metadata about the optimization.
 
     Examples
     --------
         >>> conn = htlg.Connectivity("circular", n=4)
         >>> stab_code = htlg.StabilizerCode("4_2_2")
         >>> log_gate = htlg.Circuit("H 0", 2)
-        >>> circ, status = tailor_logical_gate(stab_code, conn, log_gate, 2)
+        >>> circ, om = tailor_logical_gate(stab_code, conn, log_gate, 2)
 
     """
     if not isinstance(stab_code, StabilizerCode):
@@ -119,7 +120,7 @@ def tailor_logical_gate(
         gate_finder.set_time_limit(time_limit)
     gate_finder.set_logical_gate(logical_gate)
     gate_finder.set_target_function(cost_function)
-    gate_finder.find_gate()
+    om = gate_finder.find_gate()
     if gate_finder.has_solution():
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
             ps = Circuit.from_paulis(
@@ -127,14 +128,14 @@ def tailor_logical_gate(
             circuit = ps + gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
-            return circuit, gate_finder.get_status()
+            return circuit, om
         else:
             circuit = gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
-            return circuit, gate_finder.get_status()
+            return circuit, om
     else:
-        return None, gate_finder.get_status()
+        return None, om
 
 
 def tailor_multiple_logical_gates(
@@ -198,7 +199,7 @@ def tailor_multiple_logical_gates(
     Returns
     -------
     Dict
-        Dictionary containing the constructed circuits and runtime information.
+        Dictionary containing the constructed circuits and optimization metadata.
     """
     if not isinstance(stab_code, StabilizerCode):
         raise TypeError("Create qecc object via function 'get_code'!")
@@ -236,18 +237,16 @@ def tailor_multiple_logical_gates(
     }
     for num, i in enumerate(iterate(logical_gates)):
         gate_finder.set_logical_gate(symplectic_matrix(i, gate_finder.k))
-        gate_finder.find_gate()
+        om = gate_finder.find_gate()
         if gate_finder.has_solution():
             circuit = gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
             stor["Gates"][i] = {"Circuit": circuit,
-                                "Status": gate_finder.get_status(),
-                                "Runtime": gate_finder.get_runtime()}
+                                "OM": om}
         else:
             stor["Gates"][i] = {"Circuit": None,
-                                "Status": gate_finder.get_status(),
-                                "Runtime": gate_finder.get_runtime()}
+                                "OM": om}
         if (num + 1) % save_every == 0:
             if output_file != "":
                 save_results_dictionary(stor, output_file)
@@ -278,6 +277,13 @@ def save_results_dictionary(results: Dict, filepath: str):
         circ = val.get("Circuit", None)
         if isinstance(circ, Circuit):
             results["Gates"][key]["Circuit"] = circ.__str__()
+        else: 
+            results["Gates"][key]["Circuit"] = None
+
+        om = val.get("OM", None)
+        if isinstance(om, OptimizationMetadata):
+            results["Gates"][key]["OM"] = om.to_dict()
+        
     with open(filepath, 'w') as file:
         json.dump(results, file)
 
@@ -308,6 +314,9 @@ def load_results_dictionary(filepath: str):
             results["Gates"][key]["Circuit"] = Circuit(circ)
         else:
             results["Gates"][key]["Circuit"] = None
+        om = val.get("OM", None)
+        if isinstance(om, Dict):
+            results["Gates"][key]["OM"] = OptimizationMetadata.from_dict(om)
     for key in list(results.get("Gates", {}).keys()):
         results["Gates"][int(key)] = results["Gates"].pop(key)
     return results
@@ -392,9 +401,10 @@ class GateFinder:
     def get_work(self) -> float:
         return self.env.get_work()
 
-    def find_gate(self):
+    def find_gate(self) -> OptimizationMetadata:
         assert (self.active_gate)
-        self.env.solve()
+        om = self.env.solve()
+        return om
 
     def get_circuit_implementation(self) -> Circuit:
         cliffs: List[Clifford] = [None] * (2*self.NUM_CZL + 1)
