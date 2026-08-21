@@ -41,7 +41,7 @@ def tailor_logical_gate(
     gurobi: Dict = {},
     perm: Tuple[bool, bool] = (False, False),
     cost_function: CostFunction = CostFunction.cz_count
-) -> Tuple[Optional[Circuit], str]:
+) -> Tuple[Optional[Circuit], OptimizationMetadata]:
     """
     Finds a circuit implementation for a Clifford gate of a given quantum
     error-correcting code tailored to a specified hardware connectivity.
