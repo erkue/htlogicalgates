@@ -83,6 +83,7 @@ def tailor_logical_gate(
 
     Examples
     --------
+        >>> import htlogicalgates as htlg
         >>> conn = htlg.Connectivity("circular", n=4)
         >>> stab_code = htlg.StabilizerCode("4_2_2")
         >>> log_gate = htlg.Circuit("H 0", 2)

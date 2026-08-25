@@ -26,7 +26,7 @@ class OptimizationMetadata:
     time: float
     num_variables: int
     num_constraints: int
-    solutions: List[List[float, float]]
+    solutions: List[List[float]]
     final_bound: float
 
     def to_dict(self) -> Dict:
