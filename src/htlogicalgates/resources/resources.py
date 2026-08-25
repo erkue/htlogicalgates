@@ -57,8 +57,11 @@ def load_connectivity(name: str, num_qubits: Optional[int] = None) -> NDArray:
         if name in ["all-to-all", "all"]:
             return np.full((num_qubits, num_qubits), 1, dtype=np.int32) - np.identity(num_qubits, dtype=np.int32)
         if name in ["circular", "circle", "circ"]:
-            return np.roll(np.identity(num_qubits, dtype=np.int32), shift=1, axis=0) +\
-                np.roll(np.identity(num_qubits, dtype=np.int32), shift=-1, axis=0)
+            if num_qubits == 2:
+                return np.roll(np.identity(num_qubits, dtype=np.int32), shift=1, axis=0)
+            else:
+                return np.roll(np.identity(num_qubits, dtype=np.int32), shift=1, axis=0) +\
+                    np.roll(np.identity(num_qubits, dtype=np.int32), shift=-1, axis=0)
         if name in ["linear", "line"]:
             return np.eye(num_qubits, num_qubits, 1, dtype=np.int32) + np.eye(num_qubits, num_qubits, -1, dtype=np.int32)
     raise ValueError(f"No connectivity found under name '{str(name)}'.")

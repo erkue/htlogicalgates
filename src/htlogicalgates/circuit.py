@@ -8,7 +8,7 @@ try:
     from qiskit import QuantumCircuit as qiskitQuantumCircuit
 except ImportError:
     _has_qiskit = False
-finally:
+else:
     _has_qiskit = True
 
 from .symplectic_rep.clifford_gate import Clifford
@@ -76,6 +76,13 @@ def gate_to_clifford(op: Operation, qubits: List[int], num_qubits: int):
         m = np.identity(2*n, dtype=np.int32)
         m[qubits[0]+n, qubits[0]] = 1
         return Clifford(m)
+    if op == Operation.SDG:
+        assert (len(qubits) == 1)
+        m = np.identity(2*n, dtype=np.int32)
+        m[qubits[0]+n, qubits[0]] = 1
+        p = np.zeros((2*n,), dtype=np.int32)
+        p[qubits[0]] = 1
+        return Clifford(m, p)
     if op == Operation.H:
         assert (len(qubits) == 1)
         m = np.identity(2*n, dtype=np.int32)
@@ -690,20 +697,27 @@ class Circuit:
 
     @staticmethod
     def from_permutation(clifford: Clifford) -> Circuit:
-        circ = Circuit(clifford.num_qubits)
-        for i in range(clifford.num_qubits):
-            if clifford.symplectic_matrix[i, i] == 0:
-                for j in range(clifford.num_qubits):
-                    if clifford.symplectic_matrix[j, i] == 1:
-                        circ.append((Operation.SWAP, [i, j]))
-                        clifford = clifford @ gate_to_clifford(
-                            Operation.SWAP, [i, j], clifford.num_qubits
-                        )
-                        break
-        return circ
-
+        n = clifford.num_qubits
+        permutation = clifford.symplectic_matrix[:n, :n]
+        mapping = np.argmax(permutation, axis=0)
+        circuit = Circuit(n)
+        visited = np.zeros(n, dtype=bool)
+        for start in range(n):
+            if visited[start]:
+                continue
+            cycle = []
+            current = start
+            while not visited[current]:
+                visited[current] = True
+                cycle.append(current)
+                current = int(mapping[current])
+            for target in cycle[1:]:
+                circuit.swap(cycle[0], target)
+        return circuit
+    
     @staticmethod
     def from_paulis(paulis: NDArray, invert: bool = False) -> Circuit:
+        paulis %= 2
         circ = Circuit(len(paulis) // 2)
         o1, o2 = (0, len(paulis) // 2) if invert else (len(paulis) // 2, 0)
         for i in range(len(paulis) // 2):

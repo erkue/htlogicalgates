@@ -41,3 +41,18 @@ class TestCircuit(unittest.TestCase):
         c = Circuit("H 0\nZ 0")
         c.shallow_optimize()
         self.assertTrue(c.to_clifford() == Circuit("X 0\nH 0").to_clifford())
+
+    def test_from_permutation_cycle(self):
+        for n in range(4, 20, 5):
+            permutation =  np.roll(np.identity(n, dtype=np.int32), shift=1, axis=0)
+
+            zero = np.zeros_like(permutation)
+            symplectic = np.block([
+                [permutation, zero],
+                [zero, permutation],
+            ])
+
+            target = Clifford(symplectic)
+            circuit = Circuit.from_permutation(target)
+
+            self.assertTrue(circuit.to_clifford() == target)

@@ -55,6 +55,28 @@ class TestTailorLogicalGate(unittest.TestCase):
                                            cost_function=CostFunction.h_count)
         self.assertEqual(om.status, OptimizationStatus.OPTIMAL)
 
+    def test_tailor_multiple_logical_gates_with_permutations(self):
+            code = StabilizerCode("trivial", num_qubits=2)
+            connectivity = Connectivity("all", num_qubits=2)
+    
+            for perm in [(True, False), (False, True), (True, True)]:
+                with self.subTest(perm=perm):
+                    results = tailor_multiple_logical_gates(
+                        code,
+                        connectivity,
+                        logical_gates=[0, 1],
+                        num_cz_layers=1,
+                        perm=perm,
+                    )
+    
+                    for gate_id in [0, 1]:
+                        circuit = results["Gates"][gate_id]["Circuit"]
+                        self.assertIsNotNone(circuit)
+                        self.assertTrue(
+                            circuit.to_clifford()
+                            == Clifford(gate_id, num_qubits=2)
+                        )
+
 
 class TestSaveLoadResults(unittest.TestCase):
     def test_save_load_results_dictionary(self):

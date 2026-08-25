@@ -9,7 +9,7 @@ try:
     from tqdm import tqdm
 except ImportError:
     _has_tqdm = False
-finally:
+else:
     _has_tqdm = True
 
 from .grb_interface.grb_enviroment import Enviroment
@@ -212,7 +212,7 @@ def tailor_multiple_logical_gates(
         if progress_bar:
             if not _has_tqdm:
                 raise MissingOptionalLibraryError(
-                    "progress_bar requires 'qiskit' to be installed")
+                    "progress_bar=True requires 'tqdm' to be installed")
 
             return tqdm(x, smoothing=0)  # type: ignore
         return x
@@ -348,7 +348,7 @@ class GateFinder:
         self.LOGICAL, self.LOG_IDS = self.env.create_predef_bin_matrix(
             2*self.k, 2*self.k)
         self.FREEDOM = create_reduced_freedom_matrix(self.n, self.k, self.env)
-        self.Perms: List[Union[None, Clifford, ExprMatrix]] = [None, None]
+        self.Perms: List[Optional[ExprMatrix]] = [None, None]
         self.ANSATZ = self.SCLs[0]
         if perm[1]:
             self.Perms[1] = create_Perm(self.n, self.env)
@@ -392,7 +392,7 @@ class GateFinder:
     def has_solution(self) -> bool:
         return self.env.has_solution()
 
-    def get_status(self) -> str:
+    def get_status(self) -> OptimizationStatus:
         return self.env.get_status()
 
     def get_runtime(self) -> float:
@@ -419,16 +419,21 @@ class GateFinder:
 
         for c in cliffs[1:]:
             tot_cliff = tot_cliff @ c
-        if self.Perms[0] != None:
-            self.Perms[0] = Clifford(
-                self.env.evaluate_matrix(self.Perms[0]))
-            tot_cliff = tot_cliff @ self.Perms[0]
-            circs.insert(0, Circuit.from_permutation(self.Perms[0]))
-        if self.Perms[1] != None:
-            self.Perms[1] = Clifford(
-                self.env.evaluate_matrix(self.Perms[1]))
-            tot_cliff = self.Perms[1] @ tot_cliff
-            circs.append(Circuit.from_permutation(self.Perms[1]))
+        perm_start_expr = self.Perms[0]
+        if perm_start_expr is not None:
+            perm_start = Clifford(
+                self.env.evaluate_matrix(perm_start_expr)
+            )
+            tot_cliff = tot_cliff @ perm_start
+            circs.insert(0, Circuit.from_permutation(perm_start))
+
+        perm_end_expr = self.Perms[1]
+        if perm_end_expr is not None:
+            perm_end = Clifford(
+                self.env.evaluate_matrix(perm_end_expr)
+            )
+            tot_cliff = perm_end @ tot_cliff
+            circs.append(Circuit.from_permutation(perm_end))
 
         paulis = Circuit.from_paulis(
             self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
