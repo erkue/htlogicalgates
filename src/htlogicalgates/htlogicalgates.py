@@ -9,7 +9,7 @@ try:
     from tqdm import tqdm
 except ImportError:
     _has_tqdm = False
-finally:
+else:
     _has_tqdm = True
 
 from .grb_interface.grb_enviroment import Enviroment
@@ -21,6 +21,7 @@ from .symplectic_rep.helper import LinSolver
 from .connectivity import Connectivity
 from .stabilizercode import StabilizerCode
 from ._utility import MissingOptionalLibraryError
+from .optimization import OptimizationStatus, OptimizationMetadata
 
 
 class CostFunction(Enum):
@@ -40,7 +41,7 @@ def tailor_logical_gate(
     gurobi: Dict = {},
     perm: Tuple[bool, bool] = (False, False),
     cost_function: CostFunction = CostFunction.cz_count
-) -> Tuple[Optional[Circuit], str]:
+) -> Tuple[Optional[Circuit], OptimizationMetadata]:
     """
     Finds a circuit implementation for a Clifford gate of a given quantum
     error-correcting code tailored to a specified hardware connectivity.
@@ -77,15 +78,16 @@ def tailor_logical_gate(
 
     Returns
     -------
-    Tuple[Optional[Circuit], str]
-        A circuit (if one has been found) and a status message.
+    Tuple[Optional[Circuit], OptimizationMetadata]
+        A circuit (if one has been found) and metadata about the optimization.
 
     Examples
     --------
+        >>> import htlogicalgates as htlg
         >>> conn = htlg.Connectivity("circular", n=4)
         >>> stab_code = htlg.StabilizerCode("4_2_2")
         >>> log_gate = htlg.Circuit("H 0", 2)
-        >>> circ, status = tailor_logical_gate(stab_code, conn, log_gate, 2)
+        >>> circ, om = tailor_logical_gate(stab_code, conn, log_gate, 2)
 
     """
     if not isinstance(stab_code, StabilizerCode):
@@ -119,7 +121,7 @@ def tailor_logical_gate(
         gate_finder.set_time_limit(time_limit)
     gate_finder.set_logical_gate(logical_gate)
     gate_finder.set_target_function(cost_function)
-    gate_finder.find_gate()
+    om = gate_finder.find_gate()
     if gate_finder.has_solution():
         if add_phases is not None and np.count_nonzero(add_phases) != 0:
             ps = Circuit.from_paulis(
@@ -127,14 +129,14 @@ def tailor_logical_gate(
             circuit = ps + gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
-            return circuit, gate_finder.get_status()
+            return circuit, om
         else:
             circuit = gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
-            return circuit, gate_finder.get_status()
+            return circuit, om
     else:
-        return None, gate_finder.get_status()
+        return None, om
 
 
 def tailor_multiple_logical_gates(
@@ -198,7 +200,7 @@ def tailor_multiple_logical_gates(
     Returns
     -------
     Dict
-        Dictionary containing the constructed circuits and runtime information.
+        Dictionary containing the constructed circuits and optimization metadata.
     """
     if not isinstance(stab_code, StabilizerCode):
         raise TypeError("Create qecc object via function 'get_code'!")
@@ -211,7 +213,7 @@ def tailor_multiple_logical_gates(
         if progress_bar:
             if not _has_tqdm:
                 raise MissingOptionalLibraryError(
-                    "progress_bar requires 'qiskit' to be installed")
+                    "progress_bar=True requires 'tqdm' to be installed")
 
             return tqdm(x, smoothing=0)  # type: ignore
         return x
@@ -236,18 +238,16 @@ def tailor_multiple_logical_gates(
     }
     for num, i in enumerate(iterate(logical_gates)):
         gate_finder.set_logical_gate(symplectic_matrix(i, gate_finder.k))
-        gate_finder.find_gate()
+        om = gate_finder.find_gate()
         if gate_finder.has_solution():
             circuit = gate_finder.get_circuit_implementation()
             if optimize:
                 circuit.shallow_optimize()
             stor["Gates"][i] = {"Circuit": circuit,
-                                "Status": gate_finder.get_status(),
-                                "Runtime": gate_finder.get_runtime()}
+                                "OM": om}
         else:
             stor["Gates"][i] = {"Circuit": None,
-                                "Status": gate_finder.get_status(),
-                                "Runtime": gate_finder.get_runtime()}
+                                "OM": om}
         if (num + 1) % save_every == 0:
             if output_file != "":
                 save_results_dictionary(stor, output_file)
@@ -278,6 +278,13 @@ def save_results_dictionary(results: Dict, filepath: str):
         circ = val.get("Circuit", None)
         if isinstance(circ, Circuit):
             results["Gates"][key]["Circuit"] = circ.__str__()
+        else: 
+            results["Gates"][key]["Circuit"] = None
+
+        om = val.get("OM", None)
+        if isinstance(om, OptimizationMetadata):
+            results["Gates"][key]["OM"] = om.to_dict()
+        
     with open(filepath, 'w') as file:
         json.dump(results, file)
 
@@ -308,6 +315,9 @@ def load_results_dictionary(filepath: str):
             results["Gates"][key]["Circuit"] = Circuit(circ)
         else:
             results["Gates"][key]["Circuit"] = None
+        om = val.get("OM", None)
+        if isinstance(om, Dict):
+            results["Gates"][key]["OM"] = OptimizationMetadata.from_dict(om)
     for key in list(results.get("Gates", {}).keys()):
         results["Gates"][int(key)] = results["Gates"].pop(key)
     return results
@@ -339,7 +349,7 @@ class GateFinder:
         self.LOGICAL, self.LOG_IDS = self.env.create_predef_bin_matrix(
             2*self.k, 2*self.k)
         self.FREEDOM = create_reduced_freedom_matrix(self.n, self.k, self.env)
-        self.Perms: List[Union[None, Clifford, ExprMatrix]] = [None, None]
+        self.Perms: List[Optional[ExprMatrix]] = [None, None]
         self.ANSATZ = self.SCLs[0]
         if perm[1]:
             self.Perms[1] = create_Perm(self.n, self.env)
@@ -383,7 +393,7 @@ class GateFinder:
     def has_solution(self) -> bool:
         return self.env.has_solution()
 
-    def get_status(self) -> str:
+    def get_status(self) -> OptimizationStatus:
         return self.env.get_status()
 
     def get_runtime(self) -> float:
@@ -392,9 +402,10 @@ class GateFinder:
     def get_work(self) -> float:
         return self.env.get_work()
 
-    def find_gate(self):
+    def find_gate(self) -> OptimizationMetadata:
         assert (self.active_gate)
-        self.env.solve()
+        om = self.env.solve()
+        return om
 
     def get_circuit_implementation(self) -> Circuit:
         cliffs: List[Clifford] = [None] * (2*self.NUM_CZL + 1)
@@ -409,16 +420,21 @@ class GateFinder:
 
         for c in cliffs[1:]:
             tot_cliff = tot_cliff @ c
-        if self.Perms[0] != None:
-            self.Perms[0] = Clifford(
-                self.env.evaluate_matrix(self.Perms[0]))
-            tot_cliff = tot_cliff @ self.Perms[0]
-            circs.insert(0, Circuit.from_permutation(self.Perms[0]))
-        if self.Perms[1] != None:
-            self.Perms[1] = Clifford(
-                self.env.evaluate_matrix(self.Perms[1]))
-            tot_cliff = self.Perms[1] @ tot_cliff
-            circs.append(Circuit.from_permutation(self.Perms[1]))
+        perm_start_expr = self.Perms[0]
+        if perm_start_expr is not None:
+            perm_start = Clifford(
+                self.env.evaluate_matrix(perm_start_expr)
+            )
+            tot_cliff = tot_cliff @ perm_start
+            circs.insert(0, Circuit.from_permutation(perm_start))
+
+        perm_end_expr = self.Perms[1]
+        if perm_end_expr is not None:
+            perm_end = Clifford(
+                self.env.evaluate_matrix(perm_end_expr)
+            )
+            tot_cliff = perm_end @ tot_cliff
+            circs.append(Circuit.from_permutation(perm_end))
 
         paulis = Circuit.from_paulis(
             self.lin_solv.get_solution((tot_cliff@self.ENC).phase), invert=True)
